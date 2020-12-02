@@ -3,6 +3,7 @@ print('__file__={0:<35} | __name__={1:<20} | __package__={2:<20}'.format(__file_
 # import thermotar as th
 from thermotar.utils import lmp_utils as lmu
 from thermotar.utils import parse_logs
+from thermotar.utils import df_utils
 import thermotar.thermo as th
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -22,14 +23,24 @@ class Dipoles(th.Thermo):
     # def __init__(self,df):
 
     @classmethod
-    def from_xvg(cls,*files):
+    def from_xvg(cls,*files,**kwargs):
         #create a list of data frames
-        dfs = [parse_logs.parse_xvg(file) for file in files]
+        dfs = [parse_logs.parse_xvg(file,**kwargs) for file in files]
 
-        joined_df = pd.concat(dfs,axis=1)
+        #reorder dfs by number of rows, so longest duplicated is kept
+        # TODO this has issues when the dataframes columns with the same name start with different values, such as different times
+        # need to work out a way of stictching this together
+
+        # #dfs.sort(key=lambda x : len(x.index),reverse=True)
+
+        # joined_df = pd.concat(dfs,axis=1)
+        # duped_names = joined_df.columns.duplicated()
+        
+        # dfs_indexed 
+
         #drop duplicate columns
-        joined_df = joined_df.loc[:,~joined_df.columns.duplicated()]
-
+        # joined_df = joined_df.loc[:,~joined_df.columns.duplicated()]
+        joined_df = df_utils.merge_no_dupes(*dfs)
         return Dipoles(joined_df)
 
     @property
@@ -45,7 +56,7 @@ class Dipoles(th.Thermo):
         else:
             return self._diel
 
-    def relaxation_time(self,t_start = 1, t_end = 20, t_name = 'Time',corr_name='C',n_exp=1,method = 'fit',all_params = False):
+    def relaxation_time(self,t_start = 1, t_end = 20, t_name = 'Time',corr_name='C',n_exp=1,method = 'fit',all_params = False,p0=None):
         """
         Find the debye relaxation time(s) (ps) and other fitting parameters
         """
@@ -57,9 +68,12 @@ class Dipoles(th.Thermo):
 
         select = np.logical_and(t > t_start, t<t_end)
 
-        fit,cov = curve_fit(exp_func,t[select],C[select],p0=(1,10))
+        if not p0: p0 = (1,t_end-t_start) # if p0 is not initialised, set the guess to be the range of the fit
+
+        fit,cov = curve_fit(exp_func,t[select],C[select],p0=p0)
         
         self._tauD = fit[1]
+        self.tau_fit = fit
         
         if all_params:
             return fit, cov
@@ -79,13 +93,13 @@ class Dipoles(th.Thermo):
             ul = df[time_name].max()*ave_upper
             select = np.logical_and(df[time_name]> ll, df[time_name]<ul)
             return df[epsilon_name][select].mean()
-    
+
         if calc_method == 'auto':
             try:
                 eps = average_range(self.data,ave_lower,ave_upper)
             except IndexError:
                 raise IndexError(f'No such column{epsilon_name}')
-
+        
         return eps
 
 

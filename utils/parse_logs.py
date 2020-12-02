@@ -3,13 +3,19 @@ import numpy as np
 import pandas as pd
 from . import lmp_utils
 
+
+''' TODO fix match units(xvg), raising errors if there are 
+less units than unitless coulmns (such as in the case of energy.xvg with 
+multiple energies)'''
+
+
 def parse_lammps():
     pass
 
 
 
 # making more general (picking out headers and legends seperately)
-def _parse_xvg(file, return_units=True, match_units = True):
+def _parse_xvg(file, return_units=True, match_units = False):
     ''' 
         Parse GROMACS .xvg output files and generate a numpy array, a dictionary of x/y labels and units and legends and units
         
@@ -25,6 +31,7 @@ def _parse_xvg(file, return_units=True, match_units = True):
     data = np.loadtxt(file,comments = ['#','@','&'])
     labels = dict()
     legends = dict()
+    units_list = []
 
     with open(file,'r') as stream:
         for line in stream:
@@ -56,29 +63,49 @@ def _parse_xvg(file, return_units=True, match_units = True):
             if legends[key]=="Unitless":
                 try:
                     legends[key] = units_list[i]  
-                except UnboundLocalError:
+                except IndexError:
                     # perhaps implement warning here that match units was specified, despite no units being found
-                    pass
+                    # currently just setsunits to last unit in list. Won't be correct usually
+                    legends[key] = units_list[-1]
    
     df = pd.DataFrame(data)
 
     return df, labels, legends
 
 
-def parse_xvg(file,style='auto',units = False,**kwargs):
+def parse_xvg(file,style='auto',units = False,match_units=False,**kwargs):
     
-    df, labels, legends = _parse_xvg(file,**kwargs)
+    df, labels, legends = _parse_xvg(file,match_units=match_units,**kwargs)
 
 
     if style == 'auto':
         # combine 
         headers = {**labels, **legends}
-        df.columns = headers.keys()
-        unit_tables = headers
+        try:
+            df.columns = headers.keys()
+            unit_tables = headers
+        except ValueError:
+            # TODO implement alternative to adding all legends and labels for more than cols!
+            style = 'rdf'
     if style == 'dipoles':
         headers = {**labels, **legends}
         df.columns = headers.keys()
         unit_tables = headers
+
+    if style == 'rdf':
+        # rdf files have x and y labels and legends: solution
+        # combine y and legends
+        if len(labels) == 2:
+            ## TODO fix this very unelegant solution of casting to dicts
+            xlabel = dict([list(labels.items())[0]])
+            ylabel = dict([list(labels.items())[1]])
+        yname = list(ylabel)[0]
+        legends_joined = {yname+'_'+key:val for key,val in legends.items()}
+
+        headers = {**xlabel, **legends_joined}
+        df.columns = headers.keys()
+        unit_tables = headers
+
     if units:
         return df, unit_tables
     return df
