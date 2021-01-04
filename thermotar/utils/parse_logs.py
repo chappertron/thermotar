@@ -74,7 +74,13 @@ def _parse_xvg(file, return_units=True, match_units = False):
 
 
 def parse_xvg(file,style='auto',units = False,match_units=False,**kwargs):
-    
+    ''' 
+        Parse GROMACS .xvg output files and generate a headered dataframe and optionally also a table of units for the columns 
+        
+        file: str with path location or fileIO
+
+    '''
+
     df, labels, legends = _parse_xvg(file,match_units=match_units,**kwargs)
 
 
@@ -95,19 +101,33 @@ def parse_xvg(file,style='auto',units = False,match_units=False,**kwargs):
     if style == 'rdf':
         # rdf files have x and y labels and legends: solution
         # combine y and legends
-        if len(labels) == 2:
+        #print(labels)
+        #print(legends)
+        if len(labels) == 2: # double check both an x and y are found; kinda required for this style
             ## TODO fix this very unelegant solution of casting to dicts
             xlabel = dict([list(labels.items())[0]])
             ylabel = dict([list(labels.items())[1]])
         yname = list(ylabel)[0]
+        
+        
+
+
+        # pickout the name of each legend and append to y
+        # TODO, make units of y not units of the legend!!! 
+        # nb this works for the rdf style but not energy
         legends_joined = {yname+'_'+key:val for key,val in legends.items()}
 
         headers = {**xlabel, **legends_joined}
-        df.columns = headers.keys()
+
+        print('headers: ',headers)
+
+        
         unit_tables = headers
 
     if units:
         return df, unit_tables
+
+    df.columns = headers
     return df
 
 if __name__ == "__main__":
