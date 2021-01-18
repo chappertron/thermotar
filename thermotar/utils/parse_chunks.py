@@ -1,0 +1,129 @@
+import re
+from io import StringIO
+import pandas as pd
+from .bash_like import tail
+from . import df_utils
+
+
+def chunk_header_lmp(file,):
+    pass
+
+
+def _lammps_parse_chunk(chunk_file, nchunks='auto', header_rows = 3,last_only = False ):
+    '''
+    
+    Parser for the types of files outputed by compute ave/correlate and compute chunk commands
+    
+    these typically have a file format where there are many tables in sets of timeseries
+
+    For convinence this parsing gives the output as pandas objects, with indexes as the 
+
+    The typical format of a lammps 'chunk' dump is:
+
+    3 row header:
+    title: # Chunk averaged... 
+    column labels for each table 'index' # Timestep Number-of-chunks Total-count
+    columns of labels each variable outputted: # Chunk Coord1 Ncount v_temp_atom ... 
+
+    Then there is:
+
+    an 'index' Timestep N-of-chunks Total-count - occurs every Number-of-chunks lines
+    a table of chunked data, with Number-of-chunks rows
+
+
+
+    nchunks = 'auto' or int
+    last_only: bool, default false. if true, will only use the last nchunks lines
+
+
+
+
+    '''
+
+    # find header lines
+    # find number of columns for each index and in each sub table
+    if nchunks == 'auto':
+        for n,line in enumerate(chunk_file):
+            if n == header_rows:
+                #get N-of-Chunks from the first instance of the 'index', which is after the head
+                nchunks = float(line.split()[1])
+    
+    
+
+    # for line in chunk_file:
+    #     # append to indexes if of the length indicies 
+    #     if line.startswith('#'):
+    #         # skip commented lines
+    #         next
+
+
+
+def lmp_last_chunk(fname, nchunks='auto', header_rows = 3,header_line = None):
+    '''
+    
+    Parser for the types of files outputed by compute ave/correlate and compute chunk commands
+    
+    these typically have a file format where there are many tables in sets of timeseries
+
+    For convinence this parsing gives the output as pandas objects, with indexes as the 
+
+    The typical format of a lammps 'chunk' dump is:
+
+    3 row header:
+    title: # Chunk averaged... 
+    column labels for each table 'index' # Timestep Number-of-chunks Total-count
+    columns of labels each variable outputted: # Chunk Coord1 Ncount v_temp_atom ... 
+
+    Then there is:
+
+    an 'index' Timestep N-of-chunks Total-count - occurs every Number-of-chunks lines
+    a table of chunked data, with Number-of-chunks rows
+
+
+
+    nchunks = 'auto' or int
+    last_only: bool, default false. if true, will only use the last nchunks lines
+
+
+    header_line : int or None  if none, the header is loaded from last line of header rows, else it is the index specified
+
+    '''
+
+    
+
+    # TODO add option for no header
+    if not header_line:
+        # if no header line is specified, assume second of the header rows
+        header_line = header_rows - 1
+    header = df_utils.comment_header(fname,line_no=header_line)
+
+    
+    #find N automactically
+    if nchunks =='auto':
+        # TODO implement automatically finding this!
+        # read the NHeader+1 th lines indexing starts at zero tho
+        
+        with open(fname) as stream:
+            for i,line in enumerate(stream):
+                if i == header_rows:
+                    # pick the second thing as index NB. currently assumes constant number of bins
+                    N = int(line.split()[1])
+                    break
+    else:
+        N = nchunks
+    last_N_IO = tail(fname,N=N) #StringIO object
+
+    return pd.read_csv(last_N_IO,sep=r'\s+',names=header)
+    
+
+
+
+
+if __name__ == "__main__":
+    ## testing reading the last chunk
+    import matplotlib.pyplot as plt
+
+    df_last = lmp_last_chunk('test_files/temp.profile')
+
+    plt.plot(df_last.Coord1,df_last.v_temp_atom)
+    plt.show()
