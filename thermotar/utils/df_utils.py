@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import io
+import numpy as np
 
 from collections import Counter
 
@@ -71,11 +72,25 @@ def comment_header(file, line_no = 0, comments='#', delim=' '):
             #if out of range, make buffer bigger!
             stream.seek(0)
             head = stream.readlines(buff+(buff+line_size)*(line_no))[line_no]
-    
-    head_list = head.split(delim) # split the header line at the desired delimiter
+    # strip trailing wspace and then split into a list
+    head_list = head.strip().split(delim) # split the header line at the desired delimiter
     trimmed = [i for i in head_list if i not in comments]
 
     return trimmed
+
+def new_cols(inpdf,colnames):
+    for col in colnames:
+        if col not in inpdf.columns:
+            inpdf[col] = np.nan # create an empty column with this name
+    return inpdf
+
+def raise_columns(obj):
+    '''Apply to an object with a .data attribute, that is a data frame. Grab the columns'''
+
+    for col in obj.data.columns:
+            setattr(obj, col ,obj.data[col])
+
+
 if __name__ == "__main__":
     
 

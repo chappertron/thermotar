@@ -12,7 +12,23 @@ multiple energies)'''
 def parse_lammps():
     pass
 
+# list of properties for to find in the lammps log files. Dict that maps to target re.
 
+lmp_property_re = {'box': r"[w+] box = (xlo ylo zlo) to (xhi yhi zhi)", 
+                    'lattice_initial':r"Lattice spacing in x,y,z\s+=\s+(?P<group>[\d.]+)\s+(?P<group1>[\d.]+)\s+(?P<group2>[\d.]+)"}
+
+def get_lmp_properties(file):
+    '''Parse a log file and get various initial/final/global properties of the system'''
+    test_re = lmp_property_re['lattice_initial']
+
+    with open(file) as stream:
+        match = None
+        for i,line in enumerate(stream):
+            match = re.match(test_re, line)
+            if match:
+                print(f'made a match on line {i}')
+                print(match.groups())
+                break
 
 # making more general (picking out headers and legends seperately)
 def _parse_xvg(file, return_units=True, match_units = False):
