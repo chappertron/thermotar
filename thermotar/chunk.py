@@ -13,6 +13,8 @@ from io import StringIO
 from thermotar.utils import lmp_utils
 from thermotar.utils import parse_chunks
 
+from thermotar.utils.df_utils import raise_col, raise_columns
+
 class Chunk():
 
     def __init__(self, thermo_df, file2=None, CLEANUP=True, coord_cols=['Coord1', 'Coord2', 'Coord3','coord'], centred=False,centered=None, **kwargs):
@@ -30,7 +32,9 @@ class Chunk():
 
         # set the columns as attributes
         for col in self.data.columns:
-            setattr(self, col ,getattr(self.data, col))
+            #setattr(self, col ,getattr(self.data, col))
+            # has to be set to a method of the class
+            setattr(self.__class__, col, raise_col(self,col)) # set attribute to this property object??
         # column names for the coordinates, up to 3
         # only those in the df are included, by finding intersect of sets.
         self.coord_cols = list(set(self.data.columns.to_list()) & set(coord_cols))
@@ -66,11 +70,11 @@ class Chunk():
 
 
     @classmethod
-    def create_empty(cls,size = None):
+    def create_empty(cls,df,size = None):
         '''Create an empty chunk/inherited so that the missing data can be handeled more effectively.'''
-        #return cls(df)
-        raise NotImplementedError('TODO: implement this')
-        pass
+        return cls(df,CLEANUP=False)
+        #raise NotImplementedError('TODO: implement this')
+        #pass
     
 
 
@@ -82,7 +86,7 @@ class Chunk():
 
         coord: index of coordinate column to centre over, indexes self.coord_cols. default is all
 
-        moment: if Not one, centres the system to this column name.
+        moment: if Not None, centres the system to this column name, weighted by this column name
         
         '''
 
@@ -101,13 +105,14 @@ class Chunk():
             if moment:
                 self.data[coord_col] -= self.moment(coord_col,moment) # set origin to be first moment, weighted by moment parameter
             else:
-                self.data[coord_col] = Chunk.centre_series(self.data[coord_col])
+                print(coord_col)
+                self.data[coord_col] = self.centre_series(self.data[coord_col])
 
         self.centred = True
             
     def center(self,coord='all'):
         '''An alias of centre for yanks'''
-        self.centre(self,coord=coord)
+        self.centre(coord=coord)
         pass
 
     @staticmethod
@@ -147,7 +152,7 @@ class Chunk():
             coords = [coord]
 
         return coords
-    def fold(self, crease = 0,coord_i=0):
+    def fold(self, crease = 0,coord_i=0, sort = False):
         '''
             Fold the profile about z = 0
             warning: if properties have been calculated prior to folding, they may no longer be correct.
@@ -161,9 +166,6 @@ class Chunk():
                     The index of the self.coord_cols list. Default is 0, the first coord
 
 
-
-
-
         '''
 
         coord_name = self.coord_cols[coord_i]
@@ -172,21 +174,25 @@ class Chunk():
             # don't bother finding fold line, just go straight to folding!!!
             # in this case fold by making all negative and 
             self.data[coord_name] = np.absolute(self.data[coord_name])
+        elif crease == 0:
+            # if the crease is located at coord = 0, but not already centred then - centres
+            self.centre(coord=coord_name)
+            self.data[coord_name] = np.absolute(self.data[coord_name])
+        else:
+            # folding about some other value
+            self.data[coord_name] -= crease # set origin to the value to be creased about
+            self.data[coord_name] = np.absolute(self.data[coord_name]) # get absolute value
+            self.data[coord_name] += crease # add the crease value back so still starts at this value!
 
-        
         # TODO Implement fully, even when not centred!
 
+        # TODO auto sort ?
+
+        if sort:
+            # sorts the data by this column name
+            self.data.sort_values(by = coord_name ,inplace = True)
 
         pass
-
-
-
-
-
-
-
-
-
 
 
 
@@ -196,11 +202,18 @@ if __name__ == "__main__":
 
     # testing the chunk creator
 
-    chunk_test = Chunk.create_chunk('../test_files/temp.profile')
-    print(chunk_test.coord_cols)
-    plt.plot(chunk_test.Coord1,chunk_test.data['density/number'])
-    plt.show()
-    chunk_test.centre()
-    plt.plot(chunk_test.Coord1,chunk_test.data['density/number'])
+    chunk_test = Chunk.create_chunk('./test_files/temp.profile')
+    # print(chunk_test.coord_cols)
+    # plt.plot(chunk_test.Coord1,chunk_test.data['density/number'])
+    # plt.show()
+    # chunk_test.centre()
+    # plt.plot(chunk_test.Coord1,chunk_test.data['density/number'])
 
-    plt.show()
+    # plt.show()
+    chunk_test.centre()
+    # test getter
+    print(chunk_test.Coord1)
+    #test setter
+    chunk_test.Coord1 = chunk_test.Coord1*2
+
+    print(chunk_test.Coord1)

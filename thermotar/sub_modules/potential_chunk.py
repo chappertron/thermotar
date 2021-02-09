@@ -98,7 +98,9 @@ class Potential(th.Chunk):
             print(Q_grad-Q_grad[0])
         sub_df[pot_Q_names] = -(sub_df[Qs]-sub_df[Qs].iloc[0])/epsilon_0_AA
             
-            
+        # raise the new cols, so they can be accessed with obj.colname notation
+        for col in cols_to_add:
+            setattr(self.__class__, col, df_utils.raise_col(self,col))
             
         if pot_corr:
             # TODO add corrections for the other components

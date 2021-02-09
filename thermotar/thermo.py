@@ -2,7 +2,6 @@
     Thermo Data is extracted from log files
 '''
 
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,7 +10,7 @@ import os
 from io import StringIO
 # from .utils import lmp_utils
 from .utils import lmp_utils
-
+from .utils import df_utils
 class Thermo():
 
     def __init__(self,thermo_df,file2 = None,CLEANUP = True, **kwargs):
@@ -28,8 +27,9 @@ class Thermo():
             #todo merge columns into vectors
 
         
-        for col in self.data.columns:
-            setattr(self, col ,getattr(self.data, col))
+        # for col in self.data.columns:
+        #     setattr(self, col ,getattr(self.data, col))
+        df_utils.raise_columns(self)
         
     
     @classmethod

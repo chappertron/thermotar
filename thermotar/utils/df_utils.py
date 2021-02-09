@@ -85,10 +85,28 @@ def new_cols(inpdf,colnames):
     return inpdf
 
 def raise_columns(obj):
-    '''Apply to an object with a .data attribute, that is a data frame. Grab the columns'''
+    '''Apply to an object with a .data attribute, that is a data frame. Grab the columns and turn into a setter/getter'''
 
     for col in obj.data.columns:
-            setattr(obj, col ,obj.data[col])
+        # has to be set to a method of the class
+        setattr(obj.__class__, col, raise_col(obj,col))
+
+def raise_col(obj,col_name):
+    '''Requires .data attribute'''
+
+    def get_col(self):
+        
+        return self.data[col_name]
+
+    def set_col(self,value):
+
+        self.data[col_name] = value
+
+    col_prop = property(get_col,set_col)
+    
+    #setattr(obj, col_name,col_prop)
+
+    return col_prop
 
 
 if __name__ == "__main__":
