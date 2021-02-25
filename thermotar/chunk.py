@@ -190,7 +190,7 @@ class Chunk():
 
         if sort:
             # sorts the data by this column name
-            self.data.sort_values(by = coord_name ,inplace = True)
+            self.data.sort_values(by = coord_name ,inplace = True,ignore_index = True) # labels 0,1,2.... Needed for future integration/differentaion operations in numpy
 
         pass
 

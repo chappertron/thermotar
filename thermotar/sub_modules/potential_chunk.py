@@ -19,6 +19,8 @@ class Potential(th.Chunk):
         '''
             TODO : finish this for easier calculation of the profiles
             Calculate the electrostatic potential contributions for all components
+
+            TODO: Correct the field contributions or calculate from potential.
             
             coords -> tuple of strings or string of names of coordinate coloums to intgrate against, assumes angstrom
         
@@ -67,7 +69,10 @@ class Potential(th.Chunk):
         
         # double integral of charge density
         sub_df['E_tot'] = cumtrapz(sub_df[charge],coordinates,initial=0)/epsilon_0_AA #V per angstrom
-        
+        # correct by subtracting the average.
+        if pot_corr:
+            sub_df['E_tot'] -= sub_df['E_tot'].mean()
+
         sub_df['phi_tot'] = -1*cumtrapz(sub_df['E_tot'],coordinates,initial=0)
         if pot_corr:
             sub_df['phi_uncorrected'] = sub_df['phi_tot']
@@ -97,10 +102,11 @@ class Potential(th.Chunk):
         if verbose:
             print(Q_grad-Q_grad[0])
         sub_df[pot_Q_names] = -(sub_df[Qs]-sub_df[Qs].iloc[0])/epsilon_0_AA
-            
-        # raise the new cols, so they can be accessed with obj.colname notation
-        for col in cols_to_add:
-            setattr(self.__class__, col, df_utils.raise_col(self,col))
+        if pot_corr:
+            for col in pot_Q_names:
+
+                sub_df[col] -= (sub_df[col].iloc[-1])*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min()) # remove the last potential so it isn't slopey
+        
             
         if pot_corr:
             # TODO add corrections for the other components
@@ -109,6 +115,9 @@ class Potential(th.Chunk):
             correction = -1 * sub_df['phi_P_z'].iloc[-1]*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min())
             sub_df['phi_P_z'] += correction
 
+        # raise the new cols, so they can be accessed with obj.colname notation
+        for col in cols_to_add:
+            setattr(self.__class__, col, df_utils.raise_col(self,col))
     
     
             
