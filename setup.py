@@ -7,7 +7,7 @@ setup(
     version='0.0.1',
     author='Aidan C',
     packages=['thermotar'],
-    scripts=[],
+    scripts=['thermotar/bin/pot_profile'],
     url='',
     description='An awesome package that does something',
     long_description=open('README.md').read(),

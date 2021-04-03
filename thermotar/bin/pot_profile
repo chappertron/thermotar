@@ -1,0 +1,58 @@
+#! /usr/bin/env python
+
+
+# TODO use argparse to add options, such as whether to 
+
+
+import sys
+
+import matplotlib.pyplot as plt
+
+import thermotar as th
+
+from thermotar.analysis import stp_utils
+
+from thermotar.sub_modules.potential_chunk import Potential
+
+# load file name in command line argument
+
+fname = sys.argv[1] 
+
+# load the charge densities
+potential = Potential.create_chunk(fname,style='np')
+potential.calculate_potentials(     ) # calculate the components to the potential
+potential.centre() #centre the coordinates so that z=0 is centre of the box
+
+
+# plot potential and electric fields
+
+
+
+fig, axs = plt.subplots(2,sharex=True)
+
+potential_label = r'$\phi$/ V'
+coord_label = r'$z/\mathrm{\AA}$'
+field_label = r'$E/\ \mathrm{V\ \AA^{-1} }$'
+
+axs[0].plot(potential.coord,potential.phi_Q_zz+potential.phi_P_z,c='b',ls='--',label=r'$\phi_{Q_{zz}} + \phi_{P_z}$')
+axs[0].plot(potential.coord,potential.phi_tot,c='k',label=r'$\phi_\mathrm{tot}$')
+axs[0].set_ylabel(potential_label)
+#axs[0].set_xlabel(coord_label)
+axs[0].legend()
+axs[0].set_title('Potential')
+axs[0].axhline(0,c='grey', ls = '--')
+
+axs[1].plot(potential.coord,potential.E_Q_zz+potential.E_P_z,c='b',ls='--',label=r'$E_{Q_zz} + E_{P_z}$')
+axs[1].plot(potential.coord,potential.E_tot,c='k',label=r'$E_\mathrm{tot}$')
+axs[1].set_ylabel(field_label)
+axs[1].set_xlabel(coord_label)
+axs[1].set_title('Field')
+axs[1].axhline(0,c='grey', ls = '--')
+
+#plt.savefig('potential_profile.png')
+
+
+plt.show()
+
+
+

@@ -1,8 +1,9 @@
+import itertools
 import re
 import numpy as np
 import pandas as pd
-from . import lmp_utils
-
+#from t import lmp_utils
+from collections import defaultdict
 
 ''' TODO fix match units(xvg), raising errors if there are 
 less units than unitless coulmns (such as in the case of energy.xvg with 
@@ -14,22 +15,29 @@ def parse_lammps():
 
 # list of properties for to find in the lammps log files. Dict that maps to target re.
 
-lmp_property_re = {'box': r"[w+] box = (xlo ylo zlo) to (xhi yhi zhi)", 
-                    'lattice_initial':r"Lattice spacing in x,y,z\s+=\s+(?P<group>[\d.]+)\s+(?P<group1>[\d.]+)\s+(?P<group2>[\d.]+)"}
+lmp_property_re = {'box': r"[\s]*[\w]+ box = \((?P<xlo>-?[\d.]+(?:e-?\d+)?)\s+(?P<ylo>-?[\d.]+(?:e-?\d+)?)\s+(?P<zlo>-?[\d.]+(?:e-?\d+)?)\) to \((?P<xhi>-?[\d.]+(?:e-?\d+)?)\s+(?P<yhi>-?[\d.]+(?:e-?\d+)?)\s+(?P<zhi>-?[\d.]+(?:e-?\d+)?)\)", 
+                    'lattice_initial':r"Lattice spacing in x,y,z\s+=\s+(?P<group>[\d.]+)\s+(?P<group1>[\d.]+)\s+(?P<group2>[\d.]+)",
+                    'time_step':r"\s*Time step\s+:\s+(?P<dt>[\d.]+)"}
 
-def get_lmp_properties(file):
+def get_lmp_properties(file, verbose = False):
     '''Parse a log file and get various initial/final/global properties of the system'''
     test_re = lmp_property_re['lattice_initial']
-
+    test_re = lmp_property_re['box']
+    properties = defaultdict(None)
     with open(file) as stream:
         match = None
-        for i,line in enumerate(stream):
-            match = re.match(test_re, line)
-            if match:
-                print(f'made a match on line {i}')
-                print(match.groups())
-                break
-
+        for key,test_re in lmp_property_re.items():
+            if verbose: print(key, test_re)
+            for i,line in enumerate(stream):
+                #print(f'starting to look at {i}')
+                match = re.match(test_re, line)
+                #print(match)
+                if match is not None:
+                    if verbose: print(f'made a match on line {i}')
+                    if verbose: print(np.array(match.groups()).astype(np.float))
+                    properties[key] = np.array(match.groups()).astype(np.float)
+                    break
+    return properties
 # making more general (picking out headers and legends seperately)
 def _parse_xvg(file, return_units=True, match_units = False):
     ''' 

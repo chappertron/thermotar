@@ -1,8 +1,10 @@
+from numpy.lib.function_base import gradient
 import thermotar as th
 
 from thermotar.utils import df_utils
 
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumtrapz, trapz
+
 
 import numpy as np
 import pandas as pd
@@ -15,7 +17,7 @@ class Potential(th.Chunk):
 
     def calculate_potentials(self,Ps = ['P_x','P_y','P_z'],
                Qs = ['Q_xx','Q_yy','Q_zz','Q_xy','Q_xz','Q_yz'],charge = 'charge_dens',
-              coords = 'coord',verbose = False, pot_corr = True):
+              coords = 'coord',verbose = False, pot_corr = True,alt_corr = False, integrate_reverse = False):
         '''
             TODO : finish this for easier calculation of the profiles
             Calculate the electrostatic potential contributions for all components
@@ -56,7 +58,10 @@ class Potential(th.Chunk):
         #print(df.head())
         
         # select temperature and rep
-        sub_df = self.data
+        if integrate_reverse:
+            sub_df = self.data.sort_values(coords,ascending=False)
+        else:
+            sub_df = self.data  
         
         #print(sub_df.head())
         
@@ -70,15 +75,22 @@ class Potential(th.Chunk):
         # double integral of charge density
         sub_df['E_tot'] = cumtrapz(sub_df[charge],coordinates,initial=0)/epsilon_0_AA #V per angstrom
         # correct by subtracting the average.
-        if pot_corr:
+        if pot_corr and not alt_corr:
             sub_df['E_tot'] -= sub_df['E_tot'].mean()
+        if alt_corr:
+            aveE = trapz(sub_df['E_tot'],coordinates)/ (coordinates.max()-coordinates.min())
+            #print(aveE)
 
+            sub_df['E_tot'] -= aveE
+
+        
         sub_df['phi_tot'] = -1*cumtrapz(sub_df['E_tot'],coordinates,initial=0)
-        if pot_corr:
-            sub_df['phi_uncorrected'] = sub_df['phi_tot']
-            # get last value of this
-            correction = -1 * sub_df['phi_tot'].iloc[-1]*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min())
-            sub_df['phi_tot'] += correction
+        # not needed because average field has already been removed
+        # if pot_corr:
+        #     sub_df['phi_uncorrected'] = sub_df['phi_tot']
+        #     # get last value of this
+        #     correction = -1 * sub_df['phi_tot'].iloc[-1]*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min())
+        #     sub_df['phi_tot'] += correction
         
         
         
@@ -106,21 +118,24 @@ class Potential(th.Chunk):
             for col in pot_Q_names:
 
                 sub_df[col] -= (sub_df[col].iloc[-1])*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min()) # remove the last potential so it isn't slopey
-        
-            
+            sub_df[field_Q_names] = -1*np.gradient(sub_df[pot_Q_names],sub_df[coords],axis=0) # derivative of the corrected potential field
         if pot_corr:
             # TODO add corrections for the other components
             sub_df['phi_P_uncorrected'] = sub_df['phi_P_z']
             # get last value of this
-            correction = -1 * sub_df['phi_P_z'].iloc[-1]*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min())
-            sub_df['phi_P_z'] += correction
-
+            for col in pot_P_names:
+                correction = -1 * sub_df[col].iloc[-1]*sub_df[coords]/(sub_df[coords].max()-sub_df[coords].min())
+                sub_df[col] += correction
+            # recalucalte the potential gradient, now from the potential
+            sub_df[field_P_names] = -1*np.gradient(sub_df[pot_P_names],sub_df[coords],axis=0)
         # raise the new cols, so they can be accessed with obj.colname notation
         for col in cols_to_add:
             setattr(self.__class__, col, df_utils.raise_col(self,col))
     
     
-            
+        if integrate_reverse:
+            self.data = sub_df.sort_values(coords,ascending=True) #sort back again!
+
             
             
             

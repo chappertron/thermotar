@@ -109,6 +109,49 @@ def raise_col(obj,col_name):
     return col_prop
 
 
+
+def rebin(df,binning_coord,bw=0.25,bins = None,mode = 'average'):
+   
+    ''' 
+        Rebin the data based on coordinates for a given new bin width.
+        Default is to perform averages over these bins.
+        Could also add weightings for these averages
+
+        coord = Column name of the coordinate to create the bins from
+
+        inplace : bool  
+            if True, overwrites the .data method, else just returns the data frame.
+
+    '''
+
+    '''
+        Create bins of a coordinate and then group by this coordinate
+        - average by this group
+    '''
+
+    coord = binning_coord
+        
+    coord_max = df[coord].max()
+    coord_min = df[coord].min() # finding min and max so it works with gfolded data
+
+
+    if not bins:
+        # if bin edges not explicitly provided, calculate them from bw and max and min of coord
+        n_bins = int((coord_max-coord_min) // bw) #double divide is floor division
+        bins = pd.cut(df[coord],n_bins)
+
+
+    df_grouped = df.groupby(bins,as_index=False) # don't want another column also called coord!!
+
+    if mode == 'average' or mode == 'mean':
+        df_binned = df_grouped.mean()
+    else:
+        df_binned = df_grouped.sum()
+
+    return df_binned
+
+
+
 if __name__ == "__main__":
     
 

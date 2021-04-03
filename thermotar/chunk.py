@@ -12,7 +12,7 @@ from io import StringIO
 # from .utils import lmp_utils
 from thermotar.utils import lmp_utils
 from thermotar.utils import parse_chunks
-
+from thermotar.utils import df_utils
 from thermotar.utils.df_utils import raise_col, raise_columns
 
 class Chunk():
@@ -27,7 +27,7 @@ class Chunk():
         #apply strip_pref function to remove 'c_/f_/v_' prefixes to all columns
         if CLEANUP:
             self.data.rename(columns = lmp_utils.strip_pref, inplace = True)
-
+            self.data.rename(columns=lmp_utils.drop_python_bad, inplace= True)
             #todo merge columns into vectors
 
         # set the columns as attributes
@@ -76,8 +76,44 @@ class Chunk():
         #raise NotImplementedError('TODO: implement this')
         #pass
     
+    def raise_columns(self):
+        '''Raise columns from the df to be attributes
+            I have no clue how pandas does this automatically...
+            Maybe I need to make it so my objects can be indexed 
+            and in doing that for assignment, the attributes can be raised up
+            TODO : Something with above??
+        '''
+        df_utils.raise_columns(self)
+
+    def prop_grad(self,prop,coord,**kwargs):
+        '''
+            creates the gradient of prop w/ respect to coord. better than direct assignment because updates the columns
+        '''
+
+        df = self.data
+
+        df[prop+'_grad'] = np.gradient(df[prop],df[coord],**kwargs)
+
+        # updates the columns
+        df_utils.raise_columns(self)
 
 
+    def nearest(self,property,value,each_half = True,coord = 0):
+        coord = self.data[self.coord_cols[coord]] # select coordinate column for which to find nearsest in each side
+        
+        prop = self.data[property]
+        # if each half, find the index in each half of the simulation box
+
+        left = prop.loc[coord < 0 ]
+        right = prop.loc[coord > 0 ]
+        
+        right_nearest =right.sub(value).abs().idxmin()
+
+        if len(left.index) !=0:
+            left_nearest = left.sub(value).abs().idxmin()
+            return [left_nearest,right_nearest]
+        else:
+            return [right_nearest]
 
 
     def centre(self, coord='all',moment=None):
@@ -105,7 +141,7 @@ class Chunk():
             if moment:
                 self.data[coord_col] -= self.moment(coord_col,moment) # set origin to be first moment, weighted by moment parameter
             else:
-                print(coord_col)
+                #print(coord_col)
                 self.data[coord_col] = self.centre_series(self.data[coord_col])
 
         self.centred = True
@@ -124,6 +160,22 @@ class Chunk():
         centred = series - centre
         return centred
     
+    def parity(self,prop,coord = 0):
+        '''
+            Multiplies a property by the sign of the coordinate. Should only be applied to properties that are pseudo scalars,  i.e. change sign under coordinate inversion, so that upon folding and averaging
+            properties are correct.
+        '''
+
+        # centre first 
+        if type(coord) == int:
+            coord = self.coord_cols[coord]
+        if not self.centred:
+            self.centre()
+
+        self.data[prop+'_original'] = self.data[prop]
+        self.data[prop] *= np.sign(self.data[coord]) # multiply by the sign of the coordinate column
+        self.raise_columns()
+        
 
     def moment(self, coord, weighting,order = 1, integrate= 'trapz'):
         '''Calculate the specified moment of the coordinate, weighted by a named property'''
@@ -152,7 +204,7 @@ class Chunk():
             coords = [coord]
 
         return coords
-    def fold(self, crease = 0,coord_i=0, sort = False):
+    def fold(self, crease = 0,coord_i=0, sort = False, inplace = True):
         '''
             Fold the profile about z = 0
             warning: if properties have been calculated prior to folding, they may no longer be correct.
@@ -195,6 +247,101 @@ class Chunk():
         pass
 
 
+    def rebin(self,coord,bw=0.25,n_bins = None,mode ='average',inplace=False):
+        ''' 
+            TODO - Change so it implements the dfutils rebin function
+            Rebin the data based on coordinates for a given new bin width.
+            Default is to perform averages over these bins.
+            Could also add weightings for these averages
+
+            coord = Column name of the coordinate to create the bins from
+
+            inplace : bool  
+                if True, overwrites the .data method, else just returns the data frame.
+
+        '''
+
+        df = self.data
+        
+        coord_max = df[coord].max()
+        coord_min = df[coord].min() # finding min and max so it works with gfolded data
+
+        n_bins = (coord_max-coord_min) // bw #double divide is floor division
+
+        bins = pd.cut(df[coord],n_bins)
+
+
+        df_grouped = df.group_by(bins)
+
+        if mode == 'average' or mode == 'mean':
+            df_binned = df_grouped.mean()
+        else:
+            df_binned = df_grouped.sum()
+
+        if inplace:
+            self.data = df_binned
+        else:
+            return df_binned
+        
+
+
+    def fold_and_ave(self,crease = 0, coord_i=0, sort = True,bw='auto'):
+        '''
+                Fold the profile about z = 0
+                warning: if properties have been calculated prior to folding, they may no longer be correct, epsecially properties that invert under coordinate inversion (pseudoscalars)
+
+                For example, electric fields calculated by integrating charge profiles, will have a different sign in each part of the box.
+
+                crease: -
+                        Position along folded coordinate to fold about
+
+                coord : int -
+                        The index of the self.coord_cols list. Default is 0, the first coord
+                        if all, will fold all coordinates, but will only crease
+
+            bw - need to re bin ! if auto - tries to work out the original bin spacing and then groups by this, if not auto, specify the bin width in distance 
+
+        '''
+       
+
+        if coord_i == 'all':
+            coord_names = self.coord_cols
+        else:
+            coord_names = [self.coord_cols[coord_i]]
+
+        if crease == 0 and not self.centred:
+            # if the crease is located at coord = 0, but not already centred then - centres
+            self.centre(coord=coord_names)
+
+
+        df = self.data.copy()
+
+        coord1 = df[coord_names[0]]
+
+        if bw == 'auto':
+            bw = np.abs(coord1.iloc[-1]-coord1.iloc[-2])  # if auto work out from the difference of the last 2 points of the coord
+
+
+
+        # # only index by the first coord,but flip all?
+        # select_a = (df[coord_names[0]] >=  0)
+        # select_b = ~select_a
+
+        # df_a = df.loc[select_a].sort_values(by = coord_names[0] ,inplace = True,ignore_index = True)
+        # df_b = df.loc[select_b]
+        # df_b[coord_names]=df_b[coord_names].abs()
+        # df_b.sort_values(by = coord_names[0] ,inplace = True,ignore_index = True)
+
+        # df_ave = pd.concat({'a':df_a,'b':df_b}).mean(level=1)    
+        
+        #fold the df
+        df[coord_names] = np.abs(df[coord_names]-crease)+crease # assumes already centred for now 
+        df_ave = df_utils.rebin(df,coord_names[0],bw).sort_values(coord_names[0]) # performing the rebinning # then sort by the coord
+        
+
+        return df_ave
+
+
 
 if __name__ == "__main__":
     
@@ -217,3 +364,5 @@ if __name__ == "__main__":
     chunk_test.Coord1 = chunk_test.Coord1*2
 
     print(chunk_test.Coord1)
+
+    print(chunk_test.density_mass)
