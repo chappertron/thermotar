@@ -33,18 +33,46 @@ def ranged_poly_fit(y,x,n=3,xl=None,xh=None,**kwargs):
     return np.polyfit(xs,ys,n,**kwargs)
 
 
-def get_poly_min(fit,x):
+def get_poly_min(fit,xh=None,xl=None):
     ''' 
         For a given set of polynomial coefficients, calculate the location of the minimum
 
         Looks only for global minimum for points in the range
 
+        Finds the minima from the coefficients
+
+        Ensure that only those taht are minima are added
+        
+        
+
+
+        Maybe also validate that the value at the edge is not the same as the value of the minimum -  if minimum is at edge, suggests that there isn't a true inversion.
     '''
-    y = np.polyval(fit,x)
+
+    poln = np.poly1d(fit) # create a polynomial from the coefficients
+    crit_points = poln.deriv().r #roots of the derivative of the polynomial
+    # filter crit points to be real
+    crit_points_real = crit_points[crit_points.imag==0].real
+    # filter further to ensure they are minima not maxima or points of inflection.
+
+    if xh and xl:
+        select = (crit_points_real <= xh) & (crit_points_real >= xl)
+        crit_points_real = crit_points_real[select]
+    # filter last so that 
+    crit_points_real = crit_points_real[poln.deriv(2)(crit_points_real) > 0] # NB 2nd derivative is strictly greater than so that inflection points aren't found
     
-    y_min = np.min(y)
+    # y_crits
+
+    y_crits = poln(crit_points_real) # evaluate the polynomial at the critical points
+
+    y_min = y_crits.min() # find the critical points with the lowest value of y
+
+    ### Old Implementation
+    #y = np.polyval(fit
+    #y_min = np.min(y)
     
-    x_min = np.asscalar(x[y==y_min])        
+    
+    x_min = np.asscalar(crit_points_real[y_crits==y_min]) # go back to finding which on is the minimum
     
     return x_min,y_min
 
@@ -80,9 +108,9 @@ def choose_temp_range(df ,ptp = 200, pot_name = 'phi_tot',temp_name ='temp' ):
     return Tl, Th
     
 
+ 
 
-
-def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False):
+def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False,validate = True):
     '''
         Find the minimum of one series with respect to another, using polynomial fittings
 
@@ -96,6 +124,10 @@ def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False):
 
         n = polynomial order to use
 
+        TODO: Don't use a grid to find the minimum. Use a np.poly1d object to find the critical points, filter to be within the region ( and real) and the find the lowest of these!!!!
+
+
+        Maybe also validate that the value at the edge is not the same as the value of the minimum -  if minimum is at edge, suggests that there isn't a true inversion.
 
     Optional inputs:
 
@@ -110,9 +142,13 @@ def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False):
 
     fit = ranged_poly_fit(y,x,n=n,xl=xl,xh=xh )
 
-    xs = np.linspace(xl,xh,grid)
+    #xs = np.linspace(xl,xh,grid)
 
-    x_min,y_min = get_poly_min(fit,xs)
+    try:
+        x_min,y_min = get_poly_min(fit,xl=xl,xh=xh) # to do, find more precise analytical minimum.
+    except ValueError:
+        x_min,y_min = (np.nan, np.nan)
+
 
     return x_min,y_min, fit
 

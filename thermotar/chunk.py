@@ -99,6 +99,15 @@ class Chunk():
 
 
     def nearest(self,property,value,each_half = True,coord = 0):
+
+        '''
+        Currently returns index
+
+        To do, return the actual row of properties??????
+
+        This way if nan - make a nan list
+
+        '''
         coord = self.data[self.coord_cols[coord]] # select coordinate column for which to find nearsest in each side
         
         prop = self.data[property]
@@ -107,13 +116,20 @@ class Chunk():
         left = prop.loc[coord < 0 ]
         right = prop.loc[coord > 0 ]
         
-        right_nearest =right.sub(value).abs().idxmin()
+        right_nearest_index =right.sub(value).abs().idxmin()
 
         if len(left.index) !=0:
-            left_nearest = left.sub(value).abs().idxmin()
-            return [left_nearest,right_nearest]
+            left_nearest_index = left.sub(value).abs().idxmin()
+            indexes = [left_nearest_index,right_nearest_index]
         else:
-            return [right_nearest]
+            indexes = [right_nearest_index]
+
+        try:
+            return self.data.loc[indexes].copy()
+        except KeyError: # just create an empty row
+            row_copy = self.data.loc[(0,),:].copy() # janky indexing makes it a df rather than a series
+            row_copy.loc[:] = np.nan
+            return row_copy
 
 
     def centre(self, coord='all',moment=None):
