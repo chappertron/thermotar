@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 
+from pandas.io.formats.console import in_interactive_session
 import thermotar as th
 import matplotlib.pyplot as plt
 
@@ -13,6 +14,9 @@ parser = argparse.ArgumentParser(description='Plot the profile and associated ')
 parser.add_argument("-e","--eos",default=False,action='store_true', help='Plot the equation of states')
 parser.add_argument("-v","--verbose",default=False, action="store_true",help='Increase Verbosity')
 parser.add_argument("-s","--save",default=False, action="store_true",help='Save the files?') 
+parser.add_argument("-p","--calculate_potentials",default=False, action="store_true",help='calculates potentials from binned charge densities') 
+parser.add_argument("-c","--centre",default=False, action="store_true",help='Centre the profiles') 
+
 
 parser.add_argument("chunk_file",help='LAMMPS chunk file, output of fix ave/chunk',action='store')
 # making the properties option positional, with zero or more
@@ -22,7 +26,20 @@ args = parser.parse_args()
 
 
 # load the 
-chunk = th.Chunk.create_chunk(args.chunk_file,style='lmp')
+try:
+    chunk = th.Chunk.create_chunk(args.chunk_file,style='lmp') # try lmp
+    coord_name ='Coord1' #chunk.data['Coord1']
+except:
+    chunk = th.Chunk.create_chunk(args.chunk_file,style='np') # try other file styles
+    coord_name ='coord' # chunk.data['coord']
+
+if args.calculate_potentials: 
+    from thermotar.sub_modules import potential_chunk as th_pot
+    chunk = th_pot.Potential(chunk.data) 
+    chunk.calculate_potentials()
+
+if args.centre:
+    chunk.centre()
 
 properties = set(chunk.data.columns)
 
@@ -34,25 +51,55 @@ if "density" in plot_properties:
     elif "density_number" in properties:
         plot_properties[plot_properties.index("density")] = "density_number"
     else:
-        raise AttributeError('No density property found!')
+        warnings.warn('No density property found!')
+# warn if the properties are to be removed
+[warnings.warn(f'Property {prop} not in file!') for prop in plot_properties if prop not in properties ]
+
+# remove properties missing
+plot_properties = list(set(plot_properties).intersection(properties)) # only properties in both sets contribute
+
+# refining properties
+
+# find the itnersection of the 
+
+class key_dependent_dict(defaultdict):
+    '''Rewrite default dict so the key is a callable'''
+    def __init__(self,f_of_x,*args):
+        super().__init__(None,*args) # base class doesn't get a factory
+        self.f_of_x = f_of_x # save f(x)
+    def __missing__(self, key): # called when a default needed
+        ret = self.f_of_x(key) # calculate default value
+        self[key] = ret # and install it in the dict
+        return ret
 
 
-labels = defaultdict(lambda : 'Unlabelled!', {'temp':'$T$/K', 'Coord1':'$z/ \mathrm{\AA}$','density_mass':r'$\rho/\mathrm{g\ cm^{-3}}$','density_number':r'$\rho_N/\mathrm{\AA^{-3}}$'})
 
-fig,axs = plt.subplots(len(plot_properties),sharex=True,tight_layout=True)
 
-for i,prop in enumerate(plot_properties):
-    ax=axs[i]
-    try:
-        ax.plot(chunk.data['Coord1'],chunk.data[prop],label='prop',c='k')
-        ax.set_ylabel(labels[prop])
-    except IndexError:
-        warnings.warn(f'Property {prop} not in file!')
-ax.set_xlabel(labels['Coord1'])
-if args.save:
-    plt.savefig('profiles.png')
+labels = key_dependent_dict(lambda x  : f'{x}', {'temp':'$T$/K', 'Coord1':'$z/ \mathrm{\AA}$','density_mass':r'$\rho/\mathrm{g\ cm^{-3}}$','density_number':r'$\rho_N/\mathrm{\AA^{-3}}$'})
 
-plt.show()
+# for key in plot_properties: 
+#     if key not in labels:
+#         labels[key] = 
+
+if len(plot_properties) != 0:
+    fig,axs = plt.subplots(len(plot_properties),sharex=True,tight_layout=True)
+    for i,prop in enumerate(plot_properties):
+        
+        try: # handling the case of only having one property to plot
+            ax=axs[i]
+        except TypeError:
+            ax=axs
+        try:
+            prop_data  = chunk.data[prop]
+            ax.plot(chunk.data[coord_name],prop_data,label='prop',c='k')
+            ax.set_ylabel(labels[prop])
+        except KeyError:
+            warnings.warn(f'Property {prop} not in file!')
+    ax.set_xlabel(labels['Coord1'])
+    if args.save:
+        plt.savefig('profiles.png')
+
+    plt.show()
 
 if args.eos:
     try:
@@ -60,5 +107,5 @@ if args.eos:
         plt.xlabel(labels['density_mass'])
         plt.ylabel(labels['temp'])
         plt.show()
-    except IndexError:
-        raise IndexError("Properties were not found!!!")
+    except:
+        warnings.warn("Properties were not found!!!")
