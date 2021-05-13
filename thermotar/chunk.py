@@ -52,10 +52,25 @@ class Chunk():
 
 
     @classmethod
-    def create_chunk(cls,fname,last = True, style='lmp'):
+    def create_chunk(cls,fname,style='lmp',last = True):
+        ''' 
+            Load LAMMPS or numpy savetxt as a df and then create a Chunk instance, or instance of an inherited class
+            TODO: Implement .xvg styles
+            TODO: Implement auto choosing the style, either with file extensions or some form of parsing
+        '''
+        
+        
         # class method used so inhereted classes can also use this method
+        # if style == 'auto':
+        #     try:
+        #         with open(fname,'r') as stream:
+        #             for i,line in enumerate(stream):
+        #                 if i==3: int(line.split()[1]) # try to cast into an integer, if this fails, likely not lmp style
+        #         style = 'lmp'
+        #     except ValueError:
+        #         # set style = 'np'
+        #         style = 'np'
         if style == 'lmp':
-
             if last:
                 df = parse_chunks.lmp_last_chunk(fname,nchunks='auto',header_rows=3)
             else:
@@ -266,6 +281,7 @@ class Chunk():
     def rebin(self,coord,bw=0.25,n_bins = None,mode ='average',inplace=False):
         ''' 
             TODO - Change so it implements the dfutils rebin function
+            TODO - impelement n_bins argument
             Rebin the data based on coordinates for a given new bin width.
             Default is to perform averages over these bins.
             Could also add weightings for these averages
@@ -279,20 +295,24 @@ class Chunk():
 
         df = self.data
         
-        coord_max = df[coord].max()
-        coord_min = df[coord].min() # finding min and max so it works with gfolded data
+        # coord_max = df[coord].max()
+        # coord_min = df[coord].min() # finding min and max so it works with gfolded data
 
-        n_bins = (coord_max-coord_min) // bw #double divide is floor division
+        # n_bins = (coord_max-coord_min) // bw #double divide is floor division
+        # n_bins = int(n_bins)
 
-        bins = pd.cut(df[coord],n_bins)
+        # bins = pd.cut(df[coord],n_bins)
 
 
-        df_grouped = df.group_by(bins)
+        # df_grouped = df.groupby(bins)
 
-        if mode == 'average' or mode == 'mean':
-            df_binned = df_grouped.mean()
-        else:
-            df_binned = df_grouped.sum()
+        
+        df_binned = df_utils.rebin(df,coord,bw=bw,mode = mode)
+        
+        # if mode == 'average' or mode == 'mean':
+        #     df_binned = df_grouped.mean()
+        # else:
+        #     df_binned = df_grouped.sum()
 
         if inplace:
             self.data = df_binned

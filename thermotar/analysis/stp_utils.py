@@ -216,8 +216,36 @@ def find_x_intercept(y,x,offset=0, xmin=None,xmax=None,interp_grid = None, inter
 
 
 
-def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w = 5,show_plots = False,recalc_post_trim = False):
-    ''' Does a lot '''
+def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w = 5,bw = None,show_plots = False,recalc_post_trim = False,direct=False):
+    ''' 
+        Does a lot 
+
+        bw: float, None 
+            rebin the data with the specified bin width, if not None.
+
+        w: int
+            Number of points for rolling averages, set to 1 for none
+            TODO: if one or None, bypass
+
+        trim_w: float
+            Distance to trim of each 'end' of the box. Distance units 
+        
+        win_type: str, None
+            Type of window to use for the rolling average. Default is None, => rectangular window
+        
+        sigma: int/float TODO: Check, which
+            Standard deviation/parameter to use for the rolling window 
+
+
+        direct: bool
+            If true, calculate STP directly from E/\grad T, else, calculate from the numerical derivative of phi with temp.
+            default: False
+           
+    '''
+
+    if bw:
+        # rebin the data -> reduce many bins to 1
+        chunk.rebin('coord',bw=bw,inplace=True)
 
     chunk.centre()
 
@@ -230,9 +258,18 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     # Calculate STP and temp_grad
 
     chunk_smoothed.prop_grad('temp','coord')
-    chunk_smoothed.data['STP'] = chunk_smoothed.E_tot/chunk_smoothed.temp_grad
-    chunk_smoothed.data['STP_P'] = chunk_smoothed.E_P_z/chunk_smoothed.temp_grad
-    chunk_smoothed.data['STP_Q'] = chunk_smoothed.E_Q_zz/chunk_smoothed.temp_grad
+    # different ways to calculate 
+    
+    
+
+    if direct:
+        chunk_smoothed.data['STP'] = chunk_smoothed.E_tot/chunk_smoothed.temp_grad
+        chunk_smoothed.data['STP_P'] = chunk_smoothed.E_P_z/chunk_smoothed.temp_grad
+        chunk_smoothed.data['STP_Q'] = chunk_smoothed.E_Q_zz/chunk_smoothed.temp_grad
+    else:
+        chunk_smoothed.data['STP'] = -1*np.gradient(chunk_smoothed.phi_tot, chunk_smoothed.temp)
+        chunk_smoothed.data['STP_P'] = -1*np.gradient(chunk_smoothed.phi_P_z,chunk_smoothed.temp)
+        chunk_smoothed.data['STP_Q'] = -1*np.gradient(chunk_smoothed.phi_Q_zz,chunk_smoothed.temp)
     chunk_smoothed.raise_columns()
 
     # trim the fatt
@@ -253,10 +290,14 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     
     change_parity = True
     if change_parity:
-        chunk_trimmed.parity('E_tot')
-        chunk_trimmed.parity('E_Q_zz')
-        chunk_trimmed.parity('E_P_z')
-        chunk_trimmed.parity('temp_grad')
+        try:
+            chunk_trimmed.parity('E_tot')
+            chunk_trimmed.parity('E_Q_zz')
+            chunk_trimmed.parity('E_P_z')
+            chunk_trimmed.parity('temp_grad')
+            chunk_trimmed.parity('cos_theta')
+        except:
+            pass
 
     chunk_folded = Potential(chunk_trimmed.fold_and_ave())
 

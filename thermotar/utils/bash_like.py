@@ -138,6 +138,20 @@ def tail(file, N=20):
     return output#''.join(data).splitlines()[-window:]
 
 
+
+def glob_to_re_group(glob_path:str):
+    '''Convert a glob expression to an equivalent re that captures what the unknowns are in the original glob'''
+    # create groups for the matched terms
+    map_re_glob = { r'\?\*':r'(.+)', r'\*':r'(.*)'} # converts * to a group with 0 or more, converts '?*' to a group with one or more
+
+    re_glob = glob_path
+
+    for glob_form,re_form in map_re_glob.items():
+        re_glob = re.sub(glob_form,re_form,re_glob)
+    
+    return re_glob
+
+
 if __name__ == "__main__":
     filename = './test_files/profile2d.dat' #'../../test_files/rep1/aver.xvg'
 
