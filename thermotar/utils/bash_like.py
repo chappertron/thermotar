@@ -2,6 +2,7 @@
 from io import StringIO
 import os
 import io
+import re
 
 def my_tail(file,N=10):
 
