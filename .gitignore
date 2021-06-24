@@ -1,0 +1,5 @@
+thermotar/__pycache__
+thermotar/sub_modules/__pycache__
+thermotar/utils/__pycache__
+#./thermotar/tests/test_files/
+#./thermotar/tests/test_files/profile2d.dat

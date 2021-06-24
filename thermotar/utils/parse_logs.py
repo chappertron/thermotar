@@ -29,14 +29,17 @@ def get_lmp_properties(file, verbose = False):
         for key,test_re in lmp_property_re.items():
             if verbose: print(key, test_re)
             for i,line in enumerate(stream):
-                #print(f'starting to look at {i}')
-                match = re.match(test_re, line)
-                #print(match)
-                if match is not None:
-                    if verbose: print(f'made a match on line {i}')
-                    if verbose: print(np.array(match.groups()).astype(np.float))
-                    properties[key] = np.array(match.groups()).astype(np.float)
-                    break
+                try:
+                    #print(f'starting to look at {i}')
+                    match = re.match(test_re, line)
+                    #print(match)
+                    if match is not None:
+                        if verbose: print(f'made a match on line {i}')
+                        if verbose: print(np.array(match.groups()).astype(np.float))
+                        properties[key] = np.array(match.groups()).astype(np.float)
+                        break # if found move on to the next property
+                except:
+                    pass
     return properties
 # making more general (picking out headers and legends seperately)
 def _parse_xvg(file, return_units=True, match_units = False):
