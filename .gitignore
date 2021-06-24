@@ -5,3 +5,4 @@ thermotar/utils/__pycache__
 #./thermotar/tests/test_files/profile2d.dat
 .gitignore
 .vscode/settings.json
+test_files/profile2d.dat
