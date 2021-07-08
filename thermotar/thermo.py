@@ -153,6 +153,8 @@ class Thermo():
         Parses the given LAMMPS log file and outputs a list of strings that contain each thermo time series.
         # Change so outputs a list of thermo objects
         Optional argument f is applied to list of strings before returning, for code reusability
+
+        TODO Make more efficient
         
         '''
         #todo perhaps change to output thermo objects???
@@ -167,7 +169,7 @@ class Thermo():
 
             # Parse file to find thermo data, returns as list of strings
             for line in stream:
-                if line.startswith(r'Per MPI rank'):
+                if line.startswith(r'Per MPI rank'):   #### todo use regular expression instead???
                     current_thermo = ""
                     thermo_start = True
                 elif line.startswith(r'Loop time of'):

@@ -26,12 +26,15 @@ def get_lmp_properties(file, verbose = False):
     properties = defaultdict(None)
     with open(file) as stream:
         match = None
-        for key,test_re in lmp_property_re.items():
-            if verbose: print(key, test_re)
+        for key,re_str in lmp_property_re.items():
+            if verbose: print(key, re_str)
+
+            test_re :re.Pattern = re.compile(re_str)
+
             for i,line in enumerate(stream):
                 try:
                     #print(f'starting to look at {i}')
-                    match = re.match(test_re, line)
+                    match = test_re.match(line)
                     #print(match)
                     if match is not None:
                         if verbose: print(f'made a match on line {i}')
