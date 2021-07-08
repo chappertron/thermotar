@@ -1,0 +1,66 @@
+#! /usr/bin/env python
+
+
+#### Script to load thermo log file(s) and record the averages. Can output to a csv if needed
+
+
+### Assues that all properties will be averaged.
+
+### By default loads the last 
+
+
+
+
+# 
+import argparse
+from os import name
+from pathlib import Path
+
+# Data handling
+import thermotar as th
+from thermotar.utils import bash_like
+import pandas as pd
+
+
+def setup_parser():
+    parser = argparse.ArgumentParser(description='Calculate average thermodynamic properties from lammps thermo log file')
+
+    parser.add_argument("thermo_file",help='Log file name to load, supports globbing',action='store')
+
+    parser.add_argument('-o','--out_file',help='Output csv file to save aveaged properties to')
+
+    return parser 
+
+
+def load_thermos(fname,last=True,split_thermos=False):
+    thermo_list = []
+
+
+    path_names = Path('.').glob(fname)
+
+    for i,path in enumerate(path_names):
+        thermo_list.append(th.create_thermos(path,last))
+
+
+
+
+def main():
+    parser = setup_parser()
+
+    args = parser.parse_args()
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__=='__main__':
+    pass
+
+
