@@ -1,0 +1,12 @@
+Metadata-Version: 1.0
+Name: thermotar
+Version: 0.0.1
+Summary: An awesome package that does something
+Home-page: UNKNOWN
+Author: Aidan C
+Author-email: UNKNOWN
+License: UNKNOWN
+Description: # thermotar
+        For importing and generating some LAMMPS and GROMACS files types, with a light bit of analysing too
+        
+Platform: UNKNOWN

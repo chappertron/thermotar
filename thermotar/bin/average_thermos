@@ -15,6 +15,10 @@
 import argparse
 from os import name
 from pathlib import Path
+import re
+from typing import Dict
+
+from numpy import select
 
 # Data handling
 import thermotar as th
@@ -27,32 +31,79 @@ def setup_parser():
 
     parser.add_argument("thermo_file",help='Log file name to load, supports globbing',action='store')
 
-    parser.add_argument('-o','--out_file',help='Output csv file to save aveaged properties to')
+    parser.add_argument('-o','--out_file',help='Output csv file to save aveaged properties to',default=None)
+
+    parser.add_argument('-v','--verbose',help='make verbose',action='store_true',default=False)
 
     return parser 
 
 
-def load_thermos(fname,last=True,split_thermos=False):
+def load_thermos(fname,last=True,split_thermos=False)-> dict:
     thermo_list = []
+    keys = []
 
-
+    path_re = re.compile(bash_like.glob_to_re_group(fname))
+    
     path_names = Path('.').glob(fname)
 
     for i,path in enumerate(path_names):
         thermo_list.append(th.create_thermos(path,last))
 
+        try:
+            key = path_re(str(path)).groups()
+            keys.append(key)
+        except Exception:
+            keys.append(i)
+            pass
 
+    if len(keys)>0:
+        thermo_dict = dict(zip(keys,thermo_list))
+
+    return thermo_dict
+
+
+def calculate_averages(thermo_dict:dict):
+    '''
+        TODO: add options for choosing which range of steps to average over.
+        TODO: Add options for which levels to average over..
+    
+    '''
+
+
+    concatted = pd.concat({key:therm.data for key,therm in thermo_dict.items()})
+    n_levels = len(concatted.index.levels)
+    non_ave_levels = tuple(range(n_levels-1))## Assuming only average over the last level, i.e. the time series.
+    means = concatted.mean(level=non_ave_levels)
+    std = concatted.std(level=non_ave_levels).rename(columns=lambda x : x+'_err')
+
+    stacked_df = pd.concat([means,std],axis=1)
+
+
+    return stacked_df
+    
 
 
 def main():
     parser = setup_parser()
 
     args = parser.parse_args()
+    
+    thermo_dict = load_thermos(args.thermo_file)
+    if args.verbose: print(thermo_dict)
+    if args.verbose: [print(str(i)+'\n',therm.data.head()) for i,therm in thermo_dict.items()]
 
 
+    df = calculate_averages(thermo_dict)
+
+    if args.verbose:
+        print('Averaged Properties:')
+        print(df)
+
+    if args.out_file:
+        df.to_csv(str(args.out_file))
 
 
-
+    pass
 
 
 
@@ -61,6 +112,6 @@ def main():
 
 
 if __name__=='__main__':
-    pass
+    main()
 
 
