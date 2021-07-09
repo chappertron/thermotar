@@ -7,7 +7,7 @@ setup(
     version='0.0.1',
     author='Aidan C',
     packages=['thermotar'],
-    scripts=['thermotar/bin/pot_profile','thermotar/bin/check_chunk'],
+    scripts=['thermotar/bin/pot_profile','thermotar/bin/check_chunk','thermotar/bin/ave_thermo'],
     url='',
     description='An awesome package that does something',
     long_description=open('README.md').read(),
