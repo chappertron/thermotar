@@ -6,3 +6,4 @@ thermotar/utils/__pycache__
 .gitignore
 .vscode/settings.json
 test_files/profile2d.dat
+thermotar/analysis/__pycache__/stp_utils.cpython-38.pyc
