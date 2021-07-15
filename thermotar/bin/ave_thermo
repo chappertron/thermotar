@@ -47,27 +47,31 @@ def load_thermos(fname,last=True,split_thermos=False,verbose=False)-> dict:
     path_names = Path('.').glob(fname)
 
     for i,path in enumerate(path_names):
-        if verbose: print(str(path))
-        
+        if verbose: 
+            print(f"Loading {path}")
         try:
             thermo_list.append(th.create_thermos(path,last))
-        except IndexError as e:
-            if verbose: print(f'log file {str(path)} could not be loaded')
-            next # go to the next file
-
-
-
+        except IndexError:
+            print(f'{path} could not be loaded 😭😭😱')
+            continue
+        #if verbose: print('Did the next work??? ')
         try:
-            if verbose:
-                print(f'Trying to match {path_re}')
             key = path_re.match(str(path)).groups()
             keys.append(key)
-        except Exception:
+        except AttributeError:
             keys.append(i)
             pass
 
-    if len(keys)>0:
-        thermo_dict = dict(zip(keys,thermo_list))
+    
+    #if verbose: print('key and df lens',len(keys),len(thermo_list))
+    
+    if len(keys) != len(thermo_list):
+        raise IndexError('Must have the same number of keys as data sets!!! Something has gone wrong in the code!!')
+    
+    if len(keys)>1:
+        thermo_dict = dict(zip(keys,thermo_list))   
+    else:
+        thermo_dict = {i:therm for i,therm in enumerate(thermo_list)}
 
     return thermo_dict
 
@@ -80,9 +84,15 @@ def calculate_averages(thermo_dict:dict):
     '''
 
 
-    concatted = pd.concat({key:therm.data for key,therm in thermo_dict.items()})
+    concatted = pd.concat({key:therm.data for key,therm in thermo_dict.items()}).sort_index()
+    
+
+    
     n_levels = len(concatted.index.levels)
+
     non_ave_levels = tuple(range(n_levels-1))## Assuming only average over the last level, i.e. the time series.
+
+
     means = concatted.mean(level=non_ave_levels)
     std = concatted.std(level=non_ave_levels).rename(columns=lambda x : x+'_err')
 
@@ -98,7 +108,7 @@ def main():
 
     args = parser.parse_args()
     
-    thermo_dict = load_thermos(args.thermo_file,verbose=args.verbose    )
+    thermo_dict = load_thermos(args.thermo_file,verbose=args.verbose)
     if args.verbose: print(thermo_dict)
     if args.verbose: [print(str(i)+'\n',therm.data.head()) for i,therm in thermo_dict.items()]
 
