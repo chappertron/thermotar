@@ -40,6 +40,10 @@ def merge_no_dupes(*dfs):
 def comment_header(file, line_no = 0, comments='#', delim=' '):
 
     '''
+
+        TODO: Address perfomance issues!!!! Compare peformance to simply calling read.csv but ignoring the # somehow
+        TODO: Maybe for i,line in enumerate(readlines) , if line == line_no is better 
+
         Grab a header at specified line that has a specified comment in front and split based on delim. assumes line is in the first few so first chunk is loaded and lines read
 
         Parameters:
@@ -63,15 +67,29 @@ def comment_header(file, line_no = 0, comments='#', delim=' '):
     '''
 
     with open(file) as stream:
-        buff = io.DEFAULT_BUFFER_SIZE
-        line_size = len(stream.readline())# get the size of the first line, to estimate how much of a buffer to give approximately
-        stream.seek(0) # go back to beginning
-        try:
-            head = stream.readlines(buff+(line_size)*(line_no))[line_no] #read the nth line # reverses at least the default buffer + line size per line
-        except IndexError:
-            #if out of range, make buffer bigger!
-            stream.seek(0)
-            head = stream.readlines(buff+(buff+line_size)*(line_no))[line_no]
+        first_line = stream.readline()
+        if line_no==0:
+            head=first_line
+        else:
+            buff = io.DEFAULT_BUFFER_SIZE
+            line_size = len(first_line)# get the size of the first line, to estimate how much of a buffer to give approximately
+            stream.seek(0) # go back to beginning
+            #my weird approach
+            try:
+                head = stream.readlines(buff+(line_size)*(line_no))[line_no] #read the nth line # reverses at least the default buffer + line size per line
+            except IndexError:
+                #if out of range, make buffer bigger!
+                stream.seek(0)
+                head = stream.readlines(buff+(buff+line_size)*(line_no))[line_no]
+
+        #simpler approach?
+
+        # for i,line in enumerate(stream):
+        #     if i == line_no:
+        #         head = line
+        
+
+
     # strip trailing wspace and then split into a list
     head_list = head.strip().split(delim) # split the header line at the desired delimiter
     trimmed = [i for i in head_list if i not in comments]
