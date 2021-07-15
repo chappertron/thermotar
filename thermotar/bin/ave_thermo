@@ -38,7 +38,7 @@ def setup_parser():
     return parser 
 
 
-def load_thermos(fname,last=True,split_thermos=False)-> dict:
+def load_thermos(fname,last=True,split_thermos=False,verbose=False)-> dict:
     thermo_list = []
     keys = []
 
@@ -47,10 +47,20 @@ def load_thermos(fname,last=True,split_thermos=False)-> dict:
     path_names = Path('.').glob(fname)
 
     for i,path in enumerate(path_names):
-        thermo_list.append(th.create_thermos(path,last))
+        if verbose: print(str(path))
+        
+        try:
+            thermo_list.append(th.create_thermos(path,last))
+        except IndexError as e:
+            if verbose: print(f'log file {str(path)} could not be loaded')
+            next # go to the next file
+
+
 
         try:
-            key = path_re(str(path)).groups()
+            if verbose:
+                print(f'Trying to match {path_re}')
+            key = path_re.match(str(path)).groups()
             keys.append(key)
         except Exception:
             keys.append(i)
@@ -88,7 +98,7 @@ def main():
 
     args = parser.parse_args()
     
-    thermo_dict = load_thermos(args.thermo_file)
+    thermo_dict = load_thermos(args.thermo_file,verbose=args.verbose    )
     if args.verbose: print(thermo_dict)
     if args.verbose: [print(str(i)+'\n',therm.data.head()) for i,therm in thermo_dict.items()]
 
