@@ -57,7 +57,8 @@ class Thermo():
         df_utils.raise_columns(self)
 
 
-    def heat_flux(self,thermostat_C='thermostatC',thermostat_H='thermostatH', area = None, style = 'linear',axis='z',C_H_ratio = 1.0,method='linear_fit',direction = 1, real_2_si = True):
+    def heat_flux(self,thermostat_C='thermostatC',thermostat_H='thermostatH', area = None, style = 'linear',
+        axis='z',C_H_ratio = 1.0,method='linear_fit',direction = 1, real_2_si = True,tstep=None):
         '''
             thermostat_C  - str:
                 Column name of the cold thermostat energy removal
@@ -93,11 +94,17 @@ class Thermo():
                 area = self.box_Lx*self.box_Ly
             else:
                 raise ValueError('axis must be x,y, or z')
+        
+        if tstep is None:
             try:
-                time = self.time
-            except:
-                time = self.time_step*self.Step
-            
+                tstep = self.step
+            except AttributeError:
+                raise AttributeError('Timestep has not been loaded from log file')
+        try:
+            time = self.time
+        except:
+            time = self.Step    *tstep
+    
 
 
         if method == 'linear_fit':
