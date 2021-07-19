@@ -37,15 +37,18 @@ class Thermo():
 
         if self.properties_dict:
             # set up properties
-
-            self.time_step = self.properties_dict['time_step']
-            self.box = self.properties_dict['box']
-            # called box_Lx rather than Lx incase it is reported via thermo output
-            self.box_Lx = self.box[3] - self.box[0]
-            self.box_Ly = self.box[4] - self.box[1]
-            self.box_Lz = self.box[5] - self.box[2]
-            self.lattice_initial = self.properties_dict['lattice_initial']
-
+            if len(self.properties_dict)>0:
+                ### TODO: set up setters and getters to the propeties dict instead
+                try:
+                    self.time_step = self.properties_dict['time_step']
+                    self.box = self.properties_dict['box']
+                    # called box_Lx rather than Lx incase it is reported via thermo output
+                    self.box_Lx = self.box[3] - self.box[0]
+                    self.box_Ly = self.box[4] - self.box[1]
+                    self.box_Lz = self.box[5] - self.box[2]
+                    self.lattice_initial = self.properties_dict['lattice_initial']
+                except KeyError:
+                    pass
 
         
         # for col in self.data.columns:
