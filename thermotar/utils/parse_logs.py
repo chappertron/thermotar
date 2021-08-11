@@ -21,28 +21,27 @@ lmp_property_re = {'box': r"[\s]*[\w]+ box = \((?P<xlo>-?[\d.]+(?:e-?\d+)?)\s+(?
 
 def get_lmp_properties(file, verbose = False):
     '''Parse a log file and get various initial/final/global properties of the system'''
-    test_re = lmp_property_re['lattice_initial']
-    test_re = lmp_property_re['box']
+    # test_re = lmp_property_re['lattice_initial']
+    # test_re = lmp_property_re['box']
     properties = defaultdict(None)
-    with open(file) as stream:
-        match = None
-        for key,re_str in lmp_property_re.items():
-            if verbose: print(key, re_str)
+    
+    match = None
+    for key,re_str in lmp_property_re.items():
+         
+        if verbose: print(key, re_str)
 
-            test_re :re.Pattern = re.compile(re_str)
-
+        test_re :re.Pattern = re.compile(re_str)
+        
+        with open(file) as stream:
             for i,line in enumerate(stream):
-                try:
-                    #print(f'starting to look at {i}')
-                    match = test_re.match(line)
-                    #print(match)
-                    if match is not None:
-                        if verbose: print(f'made a match on line {i}')
-                        if verbose: print(np.array(match.groups()).astype(np.float))
-                        properties[key] = np.array(match.groups()).astype(np.float)
-                        break # if found move on to the next property
-                except:
-                    pass
+                #print(f'starting to look at {i}')
+                match = test_re.match(line)
+                #print(match)
+                if match is not None:
+                    if verbose: print(f'made a match on line {i}')
+                    if verbose: print(np.array(match.groups()).astype(np.float))
+                    properties[key] = np.array(match.groups()).astype(np.float)
+                    break # if found move on to the next property
     return properties
 # making more general (picking out headers and legends seperately)
 def _parse_xvg(file, return_units=True, match_units = False):
