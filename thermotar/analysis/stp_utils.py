@@ -261,7 +261,7 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     chunk_smoothed.prop_grad('temp','coord')
 
     # Density Temperature gradient
-    chunk_smoothed.data['drho_dT'] = np.gradient('density_mass','temp')
+    chunk_smoothed.data['drho_dT'] = np.gradient(chunk_smoothed.density_mass,chunk_smoothed.temp)
     # different ways to calculate 
     
     
