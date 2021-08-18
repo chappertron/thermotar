@@ -45,7 +45,7 @@ def load_thermos(fname,last=True,split_thermos=False,verbose=False)-> dict:
     path_re = re.compile(bash_like.glob_to_re_group(fname))
     
     path_names = Path('.').glob(fname)
-
+    
     for i,path in enumerate(path_names):
         if verbose: 
             print(f"Loading {path}")
