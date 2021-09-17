@@ -2,7 +2,7 @@
     Thermo Data is extracted from log files
 '''
 
-from .utils import parse_logs
+from thermotar.utils import parse_logs
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
