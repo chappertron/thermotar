@@ -10,10 +10,10 @@ import re
 import os
 from io import StringIO
 # from .utils import lmp_utils
-from thermotar.utils import lmp_utils
-from thermotar.utils import parse_chunks
-from thermotar.utils import df_utils
-from thermotar.utils.df_utils import raise_col, raise_columns
+from .utils import lmp_utils
+from .utils import parse_chunks
+from .utils import df_utils
+from .utils.df_utils import raise_col, raise_columns
 
 class Chunk():
 
