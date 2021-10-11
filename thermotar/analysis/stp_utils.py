@@ -254,7 +254,7 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     chunk.centre()
 
     for col in correct:
-        chunk.correct(col,how = 'mean')
+        chunk.correct(col,how = 'ave')
 
     # smooth
     chunk_smoothed = Potential(chunk.data.rolling(w,win_type=win_type).mean(std = sigma).copy())
