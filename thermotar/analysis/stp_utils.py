@@ -217,7 +217,7 @@ def find_x_intercept(y,x,offset=0, xmin=None,xmax=None,interp_grid = None, inter
 
 
 
-def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w = 5,bw = None,show_plots = False,recalc_post_trim = False,direct=False):
+def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w = 5,bw = None,show_plots = False,recalc_post_trim = False,direct=False,correct = ['cos_theta']):
     ''' 
         Does a lot 
 
@@ -241,14 +241,20 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
         direct: bool
             If true, calculate STP directly from E/\grad T, else, calculate from the numerical derivative of phi with temp.
             default: False
+        
+        correct: list
+            List of column names to apply corrections to, before processing. ensures properties that are zero at box edges are.
            
     '''
 
-    if bw:
+    if bw is not None:
         # rebin the data -> reduce many bins to 1
         chunk.rebin('coord',bw=bw,inplace=True)
 
     chunk.centre()
+
+    for col in correct:
+        chunk.correct(col,how = 'mean')
 
     # smooth
     chunk_smoothed = Potential(chunk.data.rolling(w,win_type=win_type).mean(std = sigma).copy())

@@ -144,4 +144,11 @@ class Potential(th.Chunk):
 
             
             
-            
+    def correct(self,col_name, how = 'ave'):
+
+        if how == 'ave':
+
+            self.data[col_name] -= self.data[col_name].mean()
+
+        else:
+            raise NotImplementedError('Methods other than "ave" not yet implemented')     
