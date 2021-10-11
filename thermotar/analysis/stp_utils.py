@@ -264,6 +264,9 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     chunk_smoothed.data['drho_dT'] = np.gradient(chunk_smoothed.density_mass,chunk_smoothed.temp)
     # different ways to calculate 
     
+    ## Os theta gradient ratio
+
+    chunk_smoothed.data['cos_theta_grad_T'] = chunk_smoothed.cos_theta/chunk_smoothed.temp_grad
     
 
     if direct:
@@ -274,12 +277,12 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
         chunk_smoothed.data['STP'] = -1*np.gradient(chunk_smoothed.phi_tot, chunk_smoothed.temp)
         chunk_smoothed.data['STP_P'] = -1*np.gradient(chunk_smoothed.phi_P_z,chunk_smoothed.temp)
         chunk_smoothed.data['STP_Q'] = -1*np.gradient(chunk_smoothed.phi_Q_zz,chunk_smoothed.temp)
-    
+
     ## calculate pressure. Assume z direction
     try:
         chunk_smoothed.data['Press'] = -1*(chunk_smoothed.loc_stress_3)*chunk_smoothed.density_number
     except AttributeError:
-        warnings.warn('Pressure could not be computed. Local stress loc_stress_3 not found.')
+        warnings.warn('Pressure could not be computed. Local stress loc_stress_3 not found. TODO Add options for choosing the column')
 
     chunk_smoothed.raise_columns()
 
