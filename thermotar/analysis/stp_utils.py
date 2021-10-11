@@ -256,7 +256,7 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     for col in correct:
         chunk.correct(col,how = 'ave')
 
-    # smooth
+    # smoothed and unfolded
     chunk_smoothed = Potential(chunk.data.rolling(w,win_type=win_type).mean(std = sigma).copy())
 
     # should be done post trimming tbh
@@ -311,11 +311,14 @@ def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w 
     change_parity = True
     if change_parity:
         try:
+            # Make properties that have signs that depend on the side of the simulation bopx have the correct signs 
             chunk_trimmed.parity('E_tot')
             chunk_trimmed.parity('E_Q_zz')
             chunk_trimmed.parity('E_P_z')
             chunk_trimmed.parity('temp_grad')
             chunk_trimmed.parity('cos_theta')
+            chunk_trimmed.parity('P_z')
+
         except:
             pass
 
