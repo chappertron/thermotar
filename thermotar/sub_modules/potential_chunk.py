@@ -128,6 +128,12 @@ class Potential(th.Chunk):
                 sub_df[col] += correction
             # recalucalte the potential gradient, now from the potential
             sub_df[field_P_names] = -1*np.gradient(sub_df[pot_P_names],sub_df[coords],axis=0)
+
+            ### Apply correction to the P_z charge density
+            for col in ['P_x','P_y','P_z']:
+                correction = -1* sub_df[col].mean() # Should be zero at box ends. Apply correction, because proportional to the field
+                sub_df[col] += correction
+
         # raise the new cols, so they can be accessed with obj.colname notation
         for col in cols_to_add:
             setattr(self.__class__, col, df_utils.raise_col(self,col))
