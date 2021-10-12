@@ -182,7 +182,7 @@ class Thermo():
                 if line.startswith(r'Per MPI rank'):   #### todo use regular expression instead???
                     current_thermo = ""
                     thermo_start = True
-                elif line.startswith(r'Loop time of'):
+                elif line.startswith(r'Loop time of') or line.startswith(r'Error'):   ### this used to create a bug when the thing errors out 
                     thermo_datas.append(current_thermo)
                     thermo_start = False
                 elif thermo_start:
