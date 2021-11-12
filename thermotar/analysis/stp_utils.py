@@ -158,11 +158,14 @@ def find_phi_min(chunk,n,potential_name = 'phi_tot', temp_name = 'temp',temp_ran
     temps = chunk.data[temp_name]
     phis = chunk.data[potential_name]
 
-    if not temp_centre and (temp_range is not None):
+    if temp_centre is None and (temp_range is not None):
+        if verbose: print(f'temp_range around min {temp_range}' )
         Tl,Th = choose_temp_range(chunk.data, ptp = temp_range,pot_name = potential_name, temp_name=temp_name)
     elif temp_range is not None:
+        if verbose: print(f'temp_range {temp_range} around temp_centre {temp_centre}' )
         Tl,Th = (temp_centre - temp_range/2,temp_centre+temp_range/2)
     else: 
+        if verbose: print(f'Fitting to the full range' )
         Tl,Th = (temps.min(),temps.max())
     
     # don't over extend the range, otherwise and incorrect minima will be found!!!!
