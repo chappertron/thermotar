@@ -37,7 +37,7 @@ def ranged_poly_fit(y,x,n=3,xl=None,xh=None,**kwargs):
 def quad_w_min(x,x0,y0,G):
     return G*(x-x0)**2+y0
 
-def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,constrain_curvature : bool = True,func = quad_w_min ,**kwargs):
+def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,constrain_curvature : bool = True,constrain_min : bool = True,func = quad_w_min ,**kwargs):
     '''
         Like ranged polyfit, but now fits to a quadratic function with the minimum location explicitly a parameter
         fit to quad_w_min
@@ -49,6 +49,7 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
         xl : float = lower limit of x data to fit
         xh : float = upper limit of x data to fit 
         constrain curvature : bool = True (default) - Forces the positive curvature of the quadratic quad_w_min
+        constrain_min : bool = True (default) forces minimum to be a positive value!!!
 
     '''
 
@@ -68,10 +69,21 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
         absolute_sigma=False
 
 
-    if (func == quad_w_min) and constrain_curvature:
-        bounds_lower = (-np.inf,-np.inf,0)    # if the quadratic, force it to be positive curvature
+    if (func == quad_w_min) :
+        
+        if not constrain_curvature: 
+            G_lower=-np.inf
+        else:
+            G_lower = 0
+        if not constrain_min: 
+            T_0_lower=-np.inf
+        else:
+            T_0_lower = 0
+
+        bounds_lower = (T_0_lower,-np.inf,G_lower)    # if the quadratic, force it to be positive curvature
     else:
         bounds_lower = -np.inf
+
 
 
     p0 = (xs.mean(),ys.min(),1e-6)
