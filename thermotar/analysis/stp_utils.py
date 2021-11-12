@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 import warnings
 
-from scipy import interpolate   
+from scipy import interpolate, optimize
+
 
 import thermotar as th
 
@@ -33,6 +34,53 @@ def ranged_poly_fit(y,x,n=3,xl=None,xh=None,**kwargs):
     
     return np.polyfit(xs,ys,n,**kwargs)
 
+def quad_w_min(x,x0,y0,G):
+    return G*(x-x0)**2+y0
+
+def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,constrain_curvature : bool = True,func = quad_w_min ,**kwargs):
+    '''
+        Like ranged polyfit, but now fits to a quadratic function with the minimum location explicitly a parameter
+        fit to quad_w_min
+
+
+        y : array_like = ydata to be fitted to
+        x : array_like = xdata to be fitted to
+        sigma : array_Like = error associated with the ydata
+        xl : float = lower limit of x data to fit
+        xh : float = upper limit of x data to fit 
+        constrain curvature : bool = True (default) - Forces the positive curvature of the quadratic quad_w_min
+
+    '''
+
+    if xl is not None : xl = x.min()
+    if xh is not None : xh = x.max()
+
+    select = (x >= xl) & (x <= xh)
+    
+    xs = x.loc[select]
+    ys = y.loc[select]
+    
+    if sigma is not None : 
+        sigmas = sigma.loc[select]
+        absolute_sigma = True
+    else: 
+        sigmas =  sigma  # because you can't .loc a None type
+        absolute_sigma=False
+
+
+    if (func == quad_w_min) and constrain_curvature:
+        bounds_lower = (-np.inf,-np.inf,0)    # if the quadratic, force it to be positive curvature
+    else:
+        bounds_lower = -np.inf
+
+
+    p0 = (xs.mean(),ys.min(),1e-6)
+    
+
+    popt,pcov = optimize.curve_fit(func, xs,ys, sigma=sigmas,bounds=(bounds_lower,np.inf),absolute_sigma=absolute_sigma,p0=p0 ) # absolute sigma set with Kwargs. TODO Check if this should be set true by default. Should probably...
+
+
+    return popt,pcov
 
 def get_poly_min(fit,xh=None,xl=None):
     ''' 
@@ -42,7 +90,7 @@ def get_poly_min(fit,xh=None,xl=None):
 
         Finds the minima from the coefficients
 
-        Ensure that only those taht are minima are added
+        Ensure that only those that are minima are added
         
         
 
@@ -111,7 +159,7 @@ def choose_temp_range(df ,ptp = 200, pot_name = 'phi_tot',temp_name ='temp' ):
 
  
 
-def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False,validate = True):
+def find_min(y,x, n,  xl=None,xh=None,sigma=None,err = False,use_alt_quad=True,reject_extrap=True):
     '''
         Find the minimum of one series with respect to another, using polynomial fittings
 
@@ -123,9 +171,8 @@ def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False,validate = True)
 
         x = x data
 
-        n = polynomial order to use
+        n = polynomial order to use TODO : if second-order, use the alternative fitting function, with T_0 as a parameter
 
-        TODO: Don't use a grid to find the minimum. Use a np.poly1d object to find the critical points, filter to be within the region ( and real) and the find the lowest of these!!!!
 
 
         Maybe also validate that the value at the edge is not the same as the value of the minimum -  if minimum is at edge, suggests that there isn't a true inversion.
@@ -140,21 +187,50 @@ def find_min(y,x, n,  xl=None,xh=None,grid = 100000,err = False,validate = True)
     if not xh: xh = np.max(x)
     if not xl: xl = np.min(x)
 
+    if n != 2 and not use_alt_quad: # use the special form for a quadratic G(x-x0)^2 +y_0
+        fit = ranged_poly_fit(y,x,n=n,xl=xl,xh=xh )
+        try:
+            x_min,y_min = get_poly_min(fit,xl=xl,xh=xh)
+        except ValueError:
+            x_min,y_min = (np.nan, np.nan)
+    else:
+        try: 
+            fit,pcov  = alternate_fit(y,x,xl=xl,xh=xh,sigma=sigma,constrain_curvature=True,func=quad_w_min)
+        except RuntimeError:
+            warnings.warn('Could not fit ')
+            fit = np.repeat(np.nan,3)
+            pcov = np.diag(np.repeat(np.nan,3))  ### identity with nan on diagonals
+            # RuntimeError Occurs if there is no
+        x_min=fit[0]
+        y_min = fit[1]
+    
 
-    fit = ranged_poly_fit(y,x,n=n,xl=xl,xh=xh )
+    if (x_min < xl) | (x_min > xh) and reject_extrap:
+        x_min = np.nan
+        y_min = np.nan
 
+    
     #xs = np.linspace(xl,xh,grid)
 
-    try:
-        x_min,y_min = get_poly_min(fit,xl=xl,xh=xh) # to do, find more precise analytical minimum.
-    except ValueError:
-        x_min,y_min = (np.nan, np.nan)
 
+    if err and n==2 and sigma is not None:
+        return x_min,y_min,fit, np.sqrt(np.diag(pcov))   ### return error bars, only if error of data points is accurately accounted for
 
     return x_min,y_min, fit
 
 
-def find_phi_min(chunk,n,potential_name = 'phi_tot', temp_name = 'temp',temp_range = 300,temp_centre = None,show_plots = False,grid=100000,verbose = False,plot_markers = 10):
+def find_phi_min(chunk,n,potential_name = 'phi_tot', temp_name = 'temp',sigma=None,temp_range = 300,temp_centre = None,
+                 show_plots = False,grid=100000,verbose = False,plot_markers = 10, use_alt_quad=True,err=False):
+    '''
+        chunk: th.Chunk  = contains the data frame with the data to fit to, potential and temperature
+
+        n: int = order of polynomial for fit
+
+        grid : int = number of grid points to use for plotting   
+    
+    '''
+    
+    
     temps = chunk.data[temp_name]
     phis = chunk.data[potential_name]
 
@@ -175,21 +251,32 @@ def find_phi_min(chunk,n,potential_name = 'phi_tot', temp_name = 'temp',temp_ran
 
     if verbose: print(f'Fitting a {n}-order polynomial between T = {Tl:.3f},{Th:.3f} K.')
 
-    T_min,phi_min,fit =  find_min(phis,temps,n,xl=Tl,xh=Th,grid=grid)
+    if not err:
+        T_min,phi_min,fit =  find_min(phis,temps,n,sigma=sigma,xl=Tl,xh=Th,use_alt_quad=use_alt_quad)
+    else:
+        T_min,phi_min,fit,err_params = find_min(phis,temps,n,sigma=sigma,xl=Tl,xh=Th,use_alt_quad=use_alt_quad,err=err)
+
+
 
     if verbose: print(f'Minimum found at T = {T_min:.3f} ')
 
     if show_plots:    
         Ts = np.linspace(Tl,Th,grid)
-        plt.plot(Ts,np.polyval(fit,Ts),c='b',label =f'{n} order fit ',ls = '--')
-        plt.plot(temps,phis,'ro' ,markevery = plot_markers,label='data')
-        plt.plot(T_min,phi_min,'ko')
+        if use_alt_quad and n == 2:
+            plt.plot(Ts,quad_w_min(Ts,*fit),label=r'$G(T-T_0)^2+\phi_0$')
+        else:
+            plt.plot(Ts,np.polyval(fit,Ts),c='b',label =f'{n} order fit ',ls = '--')
+        plt.plot(temps,phis,'r.' ,markevery = plot_markers,label='data')
+        plt.plot(T_min,phi_min,'k.')
         plt.xlabel(r'$T$/K')
         plt.ylabel(r'$\phi$/V')
         plt.legend()
         plt.show()
 
-    return T_min,phi_min,fit
+    if err:
+        return T_min,phi_min, fit,err_params
+    else:
+        return T_min,phi_min,fit
 
 def find_x_intercept(y,x,offset=0, xmin=None,xmax=None,interp_grid = None, interp_modde = 'linear'):
     
@@ -216,13 +303,13 @@ def find_x_intercept(y,x,offset=0, xmin=None,xmax=None,interp_grid = None, inter
         x_new = x
         y_new = y
 
-    pass
+    raise NotImplementedError("The method of finding from an interpolated intercept is not yet implemented")
 
 
 
 def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w = 5,bw = None,show_plots = False,recalc_post_trim = False,direct=False,correct = ['cos_theta']):
     ''' 
-        Does a lot 
+        Does a lot. Prepares the profiles and calculates properties that are ratios or derivatives of others.
 
         bw: float, None 
             rebin the data with the specified bin width, if not None.
