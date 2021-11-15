@@ -61,6 +61,9 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
     xs = x.loc[select]
     ys = y.loc[select]
     
+    xs_arr = xs.to_numpy()
+    ys_arr = ys.to_numpy()
+
     if sigma is not None : 
         sigmas = sigma.loc[select]
         absolute_sigma = True
@@ -87,9 +90,9 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
 
 
     p0 = (xs.mean(),ys.min(),1e-6)
-    print(p0)
-
-    popt,pcov = optimize.curve_fit(func, xs,ys, sigma=sigmas,bounds=(bounds_lower,np.inf),absolute_sigma=absolute_sigma,p0=p0 ) # absolute sigma set with Kwargs. TODO Check if this should be set true by default. Should probably...
+    
+    
+    popt,pcov = optimize.curve_fit(func, xs_arr,ys_arr, sigma=sigmas,bounds=(bounds_lower,np.inf),absolute_sigma=absolute_sigma,p0=p0 ) # absolute sigma set with Kwargs. TODO Check if this should be set true by default. Should probably...
 
 
     return popt,pcov
