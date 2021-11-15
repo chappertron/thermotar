@@ -37,7 +37,7 @@ def ranged_poly_fit(y,x,n=3,xl=None,xh=None,**kwargs):
 def quad_w_min(x,x0,y0,G):
     return G*(x-x0)**2+y0
 
-def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,constrain_curvature : bool = True,constrain_min : bool = True,func = quad_w_min ,**kwargs):
+def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,constrain_curvature : bool = True,constrain_min : bool = False,func = quad_w_min ,**kwargs):
     '''
         Like ranged polyfit, but now fits to a quadratic function with the minimum location explicitly a parameter
         fit to quad_w_min
@@ -87,7 +87,7 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
 
 
     p0 = (xs.mean(),ys.min(),1e-6)
-    
+    print(p0)
 
     popt,pcov = optimize.curve_fit(func, xs,ys, sigma=sigmas,bounds=(bounds_lower,np.inf),absolute_sigma=absolute_sigma,p0=p0 ) # absolute sigma set with Kwargs. TODO Check if this should be set true by default. Should probably...
 
