@@ -65,12 +65,12 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
     ys_arr = ys.to_numpy()
     
     ## DEBUG
-    print(f'{xl=}')
-    print(f'{xh=}')
-    print(f'{xs.min()=}')
-    print(f'{xs.max()=}')
-    print(f'{xs_arr.min()=}')
-    print(f'{xs_arr.max()=}')
+    # print(f'{xl=}')
+    # print(f'{xh=}')
+    # print(f'{xs.min()=}')
+    # print(f'{xs.max()=}')
+    # print(f'{xs_arr.min()=}')
+    # print(f'{xs_arr.max()=}')
 
 
     if sigma is not None : 
