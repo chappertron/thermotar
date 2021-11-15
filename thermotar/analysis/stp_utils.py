@@ -210,7 +210,7 @@ def find_min(y,x, n,  xl=None,xh=None,sigma=None,err = False,use_alt_quad=True,r
             x_min,y_min = (np.nan, np.nan)
     else:
         try: 
-            fit,pcov  = alternate_fit(y,x,xl=xl,xh=xh,sigma=sigma,constrain_curvature=True,func=quad_w_min)
+            fit,pcov  = alternate_fit(y,x,xl=xl,xh=xh,sigma=sigma,constrain_curvature=True,constrain_min=True,func=quad_w_min)
         except RuntimeError:
             warnings.warn('Could not fit ')
             fit = np.repeat(np.nan,3)
@@ -250,8 +250,8 @@ def find_phi_min(chunk,n,potential_name = 'phi_tot', temp_name = 'temp',sigma=No
     phis = chunk.data[potential_name]
 
     if temp_centre is None and (temp_range is not None):
-        if verbose: print(f'temp_range around min {temp_range}' )
         Tl,Th = choose_temp_range(chunk.data, ptp = temp_range,pot_name = potential_name, temp_name=temp_name)
+        if verbose: print(f'temp_range around min {temp_range}, between {Tl=},{Th=}' )
     elif temp_range is not None:
         if verbose: print(f'temp_range {temp_range} around temp_centre {temp_centre}' )
         Tl,Th = (temp_centre - temp_range/2,temp_centre+temp_range/2)
