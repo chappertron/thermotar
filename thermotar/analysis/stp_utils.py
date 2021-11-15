@@ -24,8 +24,8 @@ def ranged_poly_fit(y,x,n=3,xl=None,xh=None,**kwargs):
 
     '''
 
-    if not xl: xl = x.min()
-    if not xh: xh = x.max()
+    if xl is None: xl = x.min()
+    if xh is None: xh = x.max()
         
     select = (x >= xl) & (x <= xh)
     
@@ -53,8 +53,8 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
 
     '''
 
-    if xl is not None : xl = x.min()
-    if xh is not None : xh = x.max()
+    if xl is None : xl = x.min()
+    if xh is None : xh = x.max()
 
     select = (x >= xl) & (x <= xh)
     
@@ -63,6 +63,15 @@ def alternate_fit(y:pd.Series,x:pd.Series,sigma:pd.Series=None,xl=None,xh=None,c
     
     xs_arr = xs.to_numpy()
     ys_arr = ys.to_numpy()
+    
+    ## DEBUG
+    print(f'{xl=}')
+    print(f'{xh=}')
+    print(f'{xs.min()=}')
+    print(f'{xs.max()=}')
+    print(f'{xs_arr.min()=}')
+    print(f'{xs_arr.max()=}')
+
 
     if sigma is not None : 
         sigmas = sigma.loc[select]
@@ -260,9 +269,16 @@ def find_phi_min(chunk,n,potential_name = 'phi_tot', temp_name = 'temp',sigma=No
         Tl,Th = (temps.min(),temps.max())
     
     # don't over extend the range, otherwise and incorrect minima will be found!!!!
-    if Th > temps.max(): Th = temps.max()
-    if Tl < temps.min(): Tl = temps.min()
-
+    print(f'{temps.max()=},{Th=}')
+    print(f'{Th > temps.max()=}')
+    print(f'{Tl < temps.min()=}')
+    print(f'{temps.min()=},{Tl=}')
+    if Th > temps.max(): 
+        Th = temps.max()
+        print('Changed to max possible temp')
+    if Tl < temps.min(): 
+        Tl = temps.min()
+        print('Changed to minimum possible temp')
 
     if verbose: print(f'Fitting a {n}-order polynomial between T = {Tl:.3f},{Th:.3f} K.')
 
@@ -306,8 +322,8 @@ def find_x_intercept(y,x,offset=0, xmin=None,xmax=None,interp_grid = None, inter
 
     '''
     # If not specified, set to maximum and minimum value of range
-    if not xmin: xmin = np.min(x)
-    if not xmax: xmax = np.min(x)
+    if  xmin is None: xmin = np.min(x)
+    if  xmax is None: xmax = np.min(x)
     
     if interp_grid:
         # if interpolation is desired, do it, else, don't 
