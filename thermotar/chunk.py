@@ -17,7 +17,7 @@ from .utils.df_utils import raise_col, raise_columns
 
 class Chunk():
 
-    def __init__(self, thermo_df, file2=None, CLEANUP=True, coord_cols=['Coord1', 'Coord2', 'Coord3','coord'], centred=False,centered=None, **kwargs):
+    def __init__(self, thermo_df, file2=None, CLEANUP=True, coord_cols=['Coord1', 'Coord2', 'Coord3','coord','Box'], centred=False,centered=None, **kwargs):
 
         ''' thermo_file - string of log file location '''
         self.data : pd.DataFrame = thermo_df
@@ -193,7 +193,8 @@ class Chunk():
     
     def parity(self,prop,coord = 0):
         '''
-            Multiplies a property by the sign of the coordinate. Should only be applied to properties that are pseudo scalars,  i.e. change sign under coordinate inversion, so that upon folding and averaging
+            Multiplies a property by the sign of the coordinate. 
+            Should only be applied to properties that are pseudo scalars,  i.e. change sign under coordinate inversion, so that upon folding and averaging
             properties are correct.
         '''
 
@@ -235,7 +236,7 @@ class Chunk():
             coords = [coord]
 
         return coords
-    def fold(self, crease = 0,coord_i=0, sort = False, inplace = True):
+    def fold(self, crease = 0, coord=None, coord_i=0,sort = False, inplace = True):
         '''
             Fold the profile about z = 0
             warning: if properties have been calculated prior to folding, they may no longer be correct.
@@ -245,13 +246,15 @@ class Chunk():
             crease: -
                     Position along folded coordinate to fold about
 
-            coord : int -
+            coord_i : int -
                     The index of the self.coord_cols list. Default is 0, the first coord
 
 
         '''
-
-        coord_name = self.coord_cols[coord_i]
+        if coord is None:
+            coord_name = self.coord_cols[coord_i]
+        else:
+            coord_name = coord
 
         if (crease == 0) and self.centred:
             # don't bother finding fold line, just go straight to folding!!!
@@ -321,7 +324,7 @@ class Chunk():
         
 
 
-    def fold_and_ave(self,crease = 0, coord_i=0, sort = True,bw='auto'):
+    def fold_and_ave(self,crease = 0,coord=None, coord_i=0, sort = True,bw='auto'):
         '''
                 Fold the profile about z = 0
                 warning: if properties have been calculated prior to folding, they may no longer be correct, epsecially properties that invert under coordinate inversion (pseudoscalars)
@@ -331,7 +334,7 @@ class Chunk():
                 crease: -
                         Position along folded coordinate to fold about
 
-                coord : int -
+                coord_i : int -
                         The index of the self.coord_cols list. Default is 0, the first coord
                         if all, will fold all coordinates, but will only crease
 
@@ -339,11 +342,14 @@ class Chunk():
 
         '''
        
-
-        if coord_i == 'all':
-            coord_names = self.coord_cols
+        if coord is None:
+            if coord_i == 'all':
+                coord_names = self.coord_cols
+            else:
+                coord_names = [self.coord_cols[coord_i]]
         else:
-            coord_names = [self.coord_cols[coord_i]]
+             coord_names = [coord] 
+
 
         if crease == 0 and not self.centred:
             # if the crease is located at coord = 0, but not already centred then - centres

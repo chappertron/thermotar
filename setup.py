@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='thermotar',
     version='0.0.1',
     author='Aidan C',
-    packages=['thermotar'],
+    packages=find_packages(),
     scripts=['thermotar/bin/pot_profile','thermotar/bin/check_chunk','thermotar/bin/ave_thermo'],
     url='',
     description='An awesome package that does something',
