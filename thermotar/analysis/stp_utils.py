@@ -338,6 +338,7 @@ def find_x_intercept(y,x,offset=0, xmin=None,xmax=None,interp_grid = None, inter
 
 
 
+
 def profile_calculating(chunk:Potential,w = 5,sigma = 3,win_type = None, trim_w = 5,bw = None,show_plots = False,recalc_post_trim = False,direct=False,correct = ['cos_theta']):
     ''' 
         Does a lot. Prepares the profiles and calculates properties that are ratios or derivatives of others.

@@ -1,8 +1,7 @@
-#from . import utils
-from . import utils
-from .thermo import *
-from .chunk import *
-from .replicator import *
+# from . import utils
+from .thermo import Thermo
+from .chunk import Chunk
+from .replicator import Replicator
 
 ### aliases for constructors
 create_thermos = Thermo.create_thermos
