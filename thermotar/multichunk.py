@@ -1,5 +1,7 @@
 
 from ast import Mult
+from optparse import NO_DEFAULT
+from typing import Iterable
 from .chunk import Chunk
 from .utils.parse_multi_chunk import LMPChunksParser, parse_lmp_chunks
 from .utils import lmp_utils,df_utils
@@ -34,6 +36,12 @@ class MultiChunk():
 
         self.centred = centred # Initialise assuming asymmetrical - to do implement a method to check this!!!!
 
+    def copy(self):
+        new_chunk = MultiChunk(self.data.copy())
+        new_chunk.coord_cols = self.coord_cols
+        new_chunk.centred = self.centred
+        return new_chunk
+
     def zero_to_nan(self,val = 0.0,col=None):
         '''
             Replace an exact value specified by val with nan
@@ -41,10 +49,29 @@ class MultiChunk():
             Improves averages
         '''
         if col is None:
-            # apply to all cols
-            self.data = self.data.replace(to_replace={val:np.nan}) 
+            to_replace = {val:np.nan}
+            value = np.nan
+            self.data = self.data.replace(to_replace=to_replace)
+            return 
+            # self.data = self.data.replace(to_replace=) 
+        elif isinstance(col,list):
+            to_replace = {column:val for column in col }
+            value = np.nan
         else:
-            self.data = self.data.replace(to_replace={col:val},value = np.nan)
+            to_replace = {col:val}
+            value = np.nan    
+        self.data = self.data.replace(to_replace=to_replace,value = value)
+    def zero_to_nan_return(self,val=0.0,col=None):
+        '''
+            Replace an exact value specified by val with nan
+            In columns col
+            Improves averages
+            Returns a new MultiChunk
+        '''
+        new_chunk =self.copy()
+        new_chunk.zero_to_nan(val=val,col=col)
+        return new_chunk
+
 
     def thresh_to_nan_inplace(self,col, thresh = 0.0,):
         '''
@@ -98,8 +125,8 @@ class MultiChunk():
 
 
     @staticmethod
-    def create_multi_chunks(fname):
-        parser = parse_lmp_chunks(fname)
+    def create_multi_chunks(fname,*, verbose = False):
+        parser = parse_lmp_chunks(fname,verbose = verbose)
         return MultiChunk(parser.data)
 
 
