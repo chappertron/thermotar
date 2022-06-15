@@ -123,8 +123,8 @@ class MultiChunk():
 
 
     @staticmethod
-    def create_multi_chunks(fname,*, verbose = False):
-        parser = parse_lmp_chunks(fname,verbose = verbose)
+    def create_multi_chunks(fname,*, verbose = False,**read_csv_kwargs):
+        parser = parse_lmp_chunks(fname,verbose = verbose,**read_csv_kwargs)
         return MultiChunk(parser.data)
 
 

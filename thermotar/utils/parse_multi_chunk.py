@@ -57,7 +57,7 @@ class LMPChunksParser:
         self.info_rows_dicts[i] = parsed_line
 
 
-    def parse_chunks(self,chunk_len ='auto',*,verbose = False ):
+    def parse_chunks(self,chunk_len ='auto',*,verbose = False,**read_csv_kwargs ):
         '''
             TODO rather than looping through the whole file in the first place, give the option to assume that all chunks are the same size.
             First checks if all the rows are the same length
@@ -82,17 +82,20 @@ class LMPChunksParser:
             use_single_size=False
 
         if use_single_size:
-            self.parse_chunks_single_size(chunk_size = chunk_size)
+            self.parse_chunks_single_size(chunk_size = chunk_size,**read_csv_kwargs)
         else:
             self.parse_chunks_multi_size(method='np')  ## passed through as kwargs
 
 
 
-    def parse_chunks_single_size(self,chunk_size,*,verbose = False): 
+    def parse_chunks_single_size(self,chunk_size,*,verbose = False,**read_csv_kwargs): 
         '''
             TODO make the index just the timestep, and not the chunk size,etc 
             TODO allow the system to be totally lazy,
             TODO parrellelize iteration over the chunks?
+
+            **read_csv_kwargs : keyword arguments passed to pd.read_csv. Note cannot add sep, chunksize, skiprows, names, comment kwargs, these are already in use.
+
         '''
         if len(self.info_row_indicies) > 0 :
             # if these rows have been found, they can be skipped.
@@ -103,7 +106,7 @@ class LMPChunksParser:
             skiprows = None
         
         values = {}
-        with pd.read_csv(self.fname,sep="\s+",chunksize=chunk_size,skiprows=skiprows,names = self.column_names,comment='#') as reader:
+        with pd.read_csv(self.fname,sep="\s+",chunksize=chunk_size,skiprows=skiprows,names = self.column_names,comment='#',**read_csv_kwargs) as reader:
             for i,chunk in enumerate(reader):
                 ind = (self.t_steps[i],self.n_chunks[i],self.total_counts[i])
                 values[ind] = chunk.reset_index(drop=True)
@@ -157,7 +160,7 @@ class LMPChunksParser:
         # print(ind_names)
         self.data.index.name = ind_names
 
-def parse_lmp_chunks(chunk_file,header_rows = 3,verbose = False):
+def parse_lmp_chunks(chunk_file,header_rows = 3,verbose = False,**read_csv_kwargs):
     parser = LMPChunksParser(chunk_file,header_rows=header_rows)
     parser.get_info_rows(verbose=verbose)
     if verbose : print("Calling parse_chunks")
