@@ -124,7 +124,12 @@ class MultiChunk():
 
     @staticmethod
     def create_multi_chunks(fname,*, verbose = False,**read_csv_kwargs):
-        parser = parse_lmp_chunks(fname,verbose = verbose,**read_csv_kwargs)
+        parser : LMPChunksParser = parse_lmp_chunks(fname,verbose = verbose,**read_csv_kwargs)
+        
+        if verbose:
+            print("Smallest chunk:", np.min(parser.n_chunks))
+            print("Biggest chunk:", np.max(parser.n_chunks))
+
         return MultiChunk(parser.data)
 
 
