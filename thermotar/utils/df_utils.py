@@ -6,6 +6,40 @@ import numpy as np
 from collections import Counter
 
 
+def df_ave_and_err(df:pd.DataFrame,level = 0, suffix = "_err",err_method = "sem") -> pd.DataFrame:
+    '''
+        Average a MultiIndexed dataframe over a specified level and get the standard error (default) 
+        or standard deviation over that level.
+    
+        df : pd.DataFrame = input DataFrame to perform operation on
+
+        level : int = Level on which to perform averaging, works out the other levels to use for grouping.
+        TODO: Add support for more than one level. 
+
+        suffix : str = String to append to columns in the sem/std dataframe
+
+        err_method : str = "sem" (default) or "std" = Whether to calculate standard deviation or standard error of the mean.
+    '''
+    
+    all_levels = set(range(df.index.nlevels))
+
+    grouping_levels = list(all_levels ^ {level})  # ^ operator removes common elements between the two sets, then combines the rest
+
+    grouped_df = df.groupby(level=grouping_levels)
+    
+    ave_df = grouped_df.mean()
+
+    rename_f = lambda x : x+suffix 
+
+    if err_method == "sem":
+        err_df = grouped_df.sem()
+    elif err_method == "std":
+        err_df = grouped_df.std()
+    else:
+        raise ValueError("Only `std` and `sem` are supported for calculating the error")
+    
+    return pd.concat([ave_df,err_df.rename(columns=rename_f)],axis=1)
+
 def find_dupes(*dfs:pd.DataFrame):
 
     '''list of all columns in all dfs. Flattened into one list.'''
