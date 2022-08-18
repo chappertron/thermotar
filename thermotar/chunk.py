@@ -3,6 +3,7 @@
 '''
 
 
+import string
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -281,23 +282,37 @@ class Chunk():
         pass
 
 
-    def rebin(self,coord,bw=0.25,n_bins = None,mode ='average',inplace=False):
+    def rebin(self,coord,bw=0.25,nbins = None,mode ='average',inplace=False,new_coord_loc = "mid",weights = None):
         ''' 
-            TODO - Change so it implements the dfutils rebin function
-            TODO - impelement n_bins argument
+            TODO - impelement n_bins argument for 1d bins
             Rebin the data based on coordinates for a given new bin width.
             Default is to perform averages over these bins.
             Could also add weightings for these averages
 
             coord = Column name of the coordinate to create the bins from
 
+            nbins = None, int, or array of ints. Number of bins for each binning dimension. Currently only supported for 2D bins
+
+            new_coord_loc = "mid" (default),"left" or "right" position of new coordinate, when set manulally rather than from average. Currently only for 2D bins 
+
             inplace : bool  
                 if True, overwrites the .data method, else just returns the data frame.
 
-        '''
+            weights = Column label for weights, only used if mode is "average" or "mean"
 
+        '''
         df = self.data
         
+        # Use multiple bins
+        if np.iterable(coord) and not isinstance(coord,str):
+            number_coords = len(coord)
+            if number_coords == 2:
+                coord1,coord2 = coord[0],coord[1]
+                df_binned = df_utils.rebin_2D(df,coord1,coord2,bw=bw,mode=mode,nbins=nbins,new_coord_loc=new_coord_loc,weight_col=weights)
+            elif np.number >= 3:
+                raise NotImplementedError("Binning in more than two dimensions not yet supported")
+        else:
+            df_binned = df_utils.rebin(df,coord,bw=bw,mode = mode,weight_col=weights)
         # coord_max = df[coord].max()
         # coord_min = df[coord].min() # finding min and max so it works with gfolded data
 
@@ -310,7 +325,6 @@ class Chunk():
         # df_grouped = df.groupby(bins)
 
         
-        df_binned = df_utils.rebin(df,coord,bw=bw,mode = mode)
         
         # if mode == 'average' or mode == 'mean':
         #     df_binned = df_grouped.mean()

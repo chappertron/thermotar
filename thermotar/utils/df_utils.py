@@ -162,7 +162,7 @@ def raise_col(obj,col_name):
 
 
 
-def rebin(df,binning_coord,bw=0.25,bins = None,mode = 'average'):
+def rebin(df,binning_coord,bw=0.25,bins = None,mode = 'average',weight_col: str = None):
    
     ''' 
         Rebin the data based on coordinates for a given new bin width.
@@ -171,8 +171,11 @@ def rebin(df,binning_coord,bw=0.25,bins = None,mode = 'average'):
 
         coord = Column name of the coordinate to create the bins from
 
+        mode  = "average", "mean", "sum" = either average or add the data in each bin.
+
         inplace : bool  
             if True, overwrites the .data method, else just returns the data frame.
+        weight_col : str| None = None(default) or string for column used for weighting. Only used for mode ='average'
 
     '''
 
@@ -196,12 +199,96 @@ def rebin(df,binning_coord,bw=0.25,bins = None,mode = 'average'):
     df_grouped = df.groupby(bins,as_index=False) # don't want another column also called coord!!
 
     if mode == 'average' or mode == 'mean':
-        df_binned = df_grouped.mean()
+        if weight_col is None:
+            df_binned = df_grouped.mean()
+        else:
+            df_binned = df_grouped.apply(lambda x : np.average(x,weights=x[weight_col],axis=0))
     else:
         df_binned = df_grouped.sum()
 
     return df_binned
 
+def rebin_2D(df,binning_coord1,binning_coord2,bw=0.25,nbins = None ,bins = None,mode = 'average',weight_col: str = None, new_coord_loc = 'mid'):
+   
+    ''' 
+        Rebin the data based on coordinates for a given new bin width.
+        Default is to perform averages over these bins.
+        Could also add weightings for these averages
+
+        coord = Column name of the coordinate to create the bins from
+
+        mode  = "average", "mean", "sum" = either average or add the data in each bin.
+
+        inplace : bool  
+            if True, overwrites the .data method, else just returns the data frame.
+        weight_col : str| None = None(default) or string for column used for weighting. Only used for mode ='average'
+        new_coord_loc = "left","right", "mid" (default)
+
+    '''
+
+    '''
+        Create bins of a coordinate and then group by this coordinate
+        - average by this group
+    '''
+
+    coord1 = binning_coord1
+    coord2 = binning_coord2
+        
+    coord1_max = df[coord1].max()
+    coord1_min = df[coord1].min() # finding min and max so it works with gfolded data
+    coord2_max = df[coord2].max()
+    coord2_min = df[coord2].min() 
+
+    if np.iterable(bw):
+        bw1= bw[0]
+        bw2= bw[1]
+    else:
+        bw1=bw2=bw
+
+    if not bins and nbins is None:
+        # if bin edges not explicitly provided, calculate them from bw and max and min of coord
+        n_bins1 = int((coord1_max-coord1_min) // bw1) #double divide is floor division
+        bins1 = pd.cut(df[coord1],n_bins1)
+        n_bins2 = int((coord2_max-coord2_min) // bw2) #double divide is floor division
+        bins2 = pd.cut(df[coord2],n_bins2)
+    elif nbins is not None:
+        # TODO: Allow for same number of bins in both dimensions without explictly needing this defined
+        n_bins1, n_bins2 = nbins
+        bins1 = pd.cut(df[coord1],n_bins1)
+        bins2 = pd.cut(df[coord2],n_bins2)
+    else:
+        # TODO allow for different predefined bins in each direction
+        bins1 = bins2 = bins
+    print(n_bins1,n_bins2)
+    df_grouped :pd.DataFrameGroupBy= df.groupby(by=[bins1,bins2]) # don't want another column also called coord!!
+    
+    if new_coord_loc == "right":
+        bin_loc_func = lambda x: x.right
+    elif new_coord_loc == "left":
+        bin_loc_func = lambda x: x.left
+    elif new_coord_loc == "mid":
+        bin_loc_func = lambda x: x.mid
+    else : raise ValueError('new_coord_loc must be either "left", "mid" or "right')
+
+    new_coord1 = bins1.apply(bin_loc_func).groupby([bins1,bins2]).max().to_numpy()
+    new_coord2 = bins2.apply(bin_loc_func).groupby([bins1,bins2]).max().to_numpy()
+
+    if mode == 'average' or mode == 'mean':
+        if weight_col is None:
+            df_binned = df_grouped.mean()
+        else:
+            df_binned = df_grouped.apply(lambda x :pd.Series( np.average(x,weights=x[weight_col],axis=0), index=x.columns))
+            # df_binned = df_grouped.apply(grouped_by_weighted_ave,weight_col)
+    else:
+        df_binned = df_grouped.sum()
+
+    df_binned[coord1] = new_coord1
+    df_binned[coord2] = new_coord2
+
+    return df_binned.reset_index(drop=True)
+
+def grouped_by_weighted_ave(df_g :pd.DataFrame,weight_col):
+    return (df_g*df_g[weight_col])/df_g[weight_col]
 
 
 if __name__ == "__main__":
@@ -226,6 +313,7 @@ if __name__ == "__main__":
 
     # testing comment_header
 
-    head = comment_header('../../test_files/temp.profile', line_no= 2, comments='#', delim=' ')
+    head = comment_header('./test_files/temp.profile', line_no= 2, comments='#', delim=' ')
 
     print(head)
+
