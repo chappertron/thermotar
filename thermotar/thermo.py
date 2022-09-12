@@ -3,6 +3,7 @@
     Thermo Data is extracted from log files
 '''
 
+import warnings
 from .utils import parse_logs
 import numpy as np
 import pandas as pd
@@ -181,6 +182,7 @@ class Thermo():
         with open(logfile,'r') as stream:
             current_thermo = ""
             thermo_start = False
+            warnings_found = False
 
             # Parse file to find thermo data, returns as list of strings
             for line in stream:
@@ -190,12 +192,19 @@ class Thermo():
                 elif line.startswith(r'Loop time of') or line.startswith(r'ERROR') or line.startswith('colvars: Saving collective'):   ### this used to create a bug when the thing errors out 
                     thermo_datas.append(current_thermo)
                     thermo_start = False
+                elif line.startswith('WARNING'):
+                    # If the line is a warning, skip to the next line
+                    warnings_found = True
+                    continue
                 elif thermo_start:
                     current_thermo += line
 
         if thermo_start:
             # if the thermo series is incomplete appends it anyway
             thermo_datas.append(current_thermo) 
+
+        if warnings_found:
+            warnings.warn("Warnings found when reading File")
 
         # if len(thermo_datas) ==0:
         #     try:
