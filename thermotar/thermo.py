@@ -1,4 +1,5 @@
-''' Defines a thermo class
+'''
+    Defines a thermo class
     Thermo Data is extracted from log files
 '''
 
@@ -13,20 +14,24 @@ from io import StringIO
 from .utils import lmp_utils
 from .utils import df_utils
 class Thermo():
+    '''
+        Class for loading and operating on LAMMPS thermodynamic output
+    ''' 
+    def __init__(self,thermo_df:pd.DataFrame,*,CLEANUP:bool = True,properties=None, **kwargs):
+        ''' 
+        Constructor for an object of the Thermo class.
 
-    def __init__(self,thermo_df,file2 = None,CLEANUP = True,properties=None, **kwargs):
+        Args:
+	        thermo_df : Pandas DataFrame containing thermodynamic information.
+            CLEANUP : Option to remove c_ etc. prefixes from column names.
+            properties : dict of properties parsed from the log file. Used in create thermos or the get_props class method.
+        Returns:
 
-        ''' thermo_df - data frame containig thermodynamic info time serieses
-            CLEANUP - Option to remove c_ etc. prefixes from column names and stuff
-            
-            properties - dict of properties paresed from the log file. Used in create thermos or the get_props class method
-
-             '''
+        '''
         self.data : pd.DataFrame = thermo_df
 
         # clean up dataframe
 
-        
         if CLEANUP:
             #apply strip_pref function to remove 'c_/f_/v_' prefixes to all columns
             self.data.rename(columns = lmp_utils.strip_pref, inplace = True)
@@ -38,7 +43,7 @@ class Thermo():
         if self.properties_dict:
             # set up properties
             if len(self.properties_dict)>0:
-                ### TODO: set up setters and getters to the propeties dict instead
+                ### TODO: set up setters and getters to the properties dict instead
                 try:
                     self.time_step = self.properties_dict['time_step']
                     self.box = self.properties_dict['box']
