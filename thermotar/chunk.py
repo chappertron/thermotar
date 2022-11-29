@@ -177,11 +177,13 @@ class Chunk():
                 self.data[coord_col] = self.centre_series(self.data[coord_col])
 
         self.centred = True
+        # Return the object at the end for method chaining
+        return self
             
     def center(self,coord='all'):
         '''An alias of centre for yanks'''
-        self.centre(coord=coord)
-        pass
+        return self.centre(coord=coord)
+
 
     @staticmethod
     def centre_series(series:pd.Series):

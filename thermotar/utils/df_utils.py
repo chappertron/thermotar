@@ -291,6 +291,11 @@ def grouped_by_weighted_ave(df_g :pd.DataFrame,weight_col):
     return (df_g*df_g[weight_col])/df_g[weight_col]
 
 
+def n_blocks2bw(series:pd.Series,n:int):
+    x_min,x_max = series.min(),series.max()
+    return (x_max-x_min)/n
+
+
 if __name__ == "__main__":
     
 

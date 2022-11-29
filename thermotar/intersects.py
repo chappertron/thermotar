@@ -1,0 +1,326 @@
+from collections import defaultdict
+import pandas as pd
+import numpy as np
+from typing import Dict, List, Tuple
+from scipy.interpolate import interp1d
+from scipy.optimize import fsolve
+from numpy.polynomial import Polynomial
+from functools import partial
+from dataclasses import dataclass, field
+from matplotlib import pyplot as plt
+
+class PairIntersectFinders:
+    '''
+    Namespace collection of methods for find the intersects between DataFrames
+
+        `coarse`:   Finds the interface crudely. Finds the index of the row with the 
+                    smallest absolute difference between the y_property
+        `interp`:   Interpolates the difference in the y property first, then uses fsolve
+                    to find a more precise intersection. Uses `coarse` for a first guess.
+
+
+    '''
+    @staticmethod
+    def coarse(df_a:pd.DataFrame,df_b:pd.DataFrame,x_prop,y_prop)->float:
+        '''
+            Find the intersect between a pair of DataFrames.
+            This uses a crude approximation, it finds the index in both DataFrames where
+            df_a[y_prop]-df_b[y_prop] is at it's smallest absolute value and then returns the
+            x_prop value at this index.
+        
+        '''
+        
+        index_cross = (df_a[y_prop]-df_b[y_prop]).abs().idxmin()
+
+        x_a = df_a[x_prop].loc[index_cross]
+        x_b = df_b[x_prop].loc[index_cross]
+
+        if ~np.isclose(x_a,x_b):
+            raise ValueError('Coordiates of bins different!')
+
+        return x_a
+
+    @staticmethod
+    def interp(df_a:pd.DataFrame,df_b:pd.DataFrame,x_prop,y_prop,kind = 'linear'):
+        x_a, y_a  = df_a[x_prop], df_a[y_prop] 
+        x_b, y_b  = df_b[x_prop], df_b[y_prop] 
+        if (x_a != x_b).all():
+            raise ValueError('Grids not the same!')
+
+        f_a = interp1d(x_a,y_a,kind=kind)
+        f_b = interp1d(x_b,y_b,kind=kind)
+        f_delta = interp1d(x_a,y_b-y_a)
+        # f_grad = interp1d(x_a,np.gradient(y_b-y_a,x_a),kind=kind) # interpolation of gradient
+        # estimate from coarse!
+        x_0 = PairIntersectFinders.coarse(df_a,df_b,x_prop,y_prop)
+        dx = x_a.diff().mean()
+        intersect = fsolve(f_delta,x0=x_0-dx/2,)
+
+        if len(intersect) == 1:
+            return intersect[0]
+        else:
+            NotImplementedError('TODO: Raise warning if more than one intersect is found!')
+
+
+pair_intesect_methods = {'coarse':PairIntersectFinders.coarse,'interp':PairIntersectFinders.interp,'linear':partial(PairIntersectFinders.interp,kind='linear')}
+
+def multi_intersect(dfs:List[pd.DataFrame],x_prop,y_prop,intersect_method = 'linear',**intersect_kwargs)-> List[float]:
+    '''
+    Insert a list of N DataFrames and find the (N-1) intersects of neighbouring data frames in the lists.
+
+    dfs: List[pd.DataFrame] = List of DataFrames to find intersects of. Must be in the order they appear spatially
+
+    x_prop: str = Name of x coordinate to find intersect in
+    y_prop : str = Name of column to use to find intersections with. 
+
+    intersect_method: 
+        'interp' : interpolates the data sets, by default linearly
+        'linear' : interpolates the data points linearly
+        'cubic' : interpolates the data points cubically to find intersects.
+        TODO: 'spline' 
+    '''
+    if intersect_method is None:
+        intersect_finder = PairIntersectFinders.interp
+    else:
+        try:
+            intersect_finder = pair_intesect_methods[intersect_method]
+        except KeyError:
+            raise NotImplemented(f'Invalid Intersect Method! {intersect_method}')
+    intersects = []
+    for i,(df_a,df_b) in enumerate(zip(dfs, dfs[1:])):
+        intersects.append(intersect_finder(df_a,df_b,y_prop=y_prop,x_prop=x_prop,**intersect_kwargs))
+
+    return intersects
+
+def bounds_from_intersects(dfs:List[pd.DataFrame],intersects:List[float],x_coord:str)-> List[pd.DataFrame]:
+    N = len(dfs)
+    if N != len(intersects)+1:
+        raise ValueError("Must always be N-1 intersects!")
+    bounds = []
+
+    for i,df in enumerate(dfs):
+
+        if i ==0:
+            bounds.append((None,intersects[0]))
+        elif i == N-1:
+            bounds.append((intersects[i-1],None))
+        else:
+            bounds.append((intersects[i-1],intersects[i]))
+    if N != len(bounds):
+        raise ValueError("There was not one set of bounds per DataFrame!")
+    return bounds
+
+def masks_from_intersects(dfs:List[pd.DataFrame],intersects:List[float],x_coord)->List[pd.DataFrame]:
+    N = len(dfs)
+
+    if N != len(intersects)+1:
+        raise ValueError("Must always be N-1 intersects!")
+    masks = []
+
+    for i,df in enumerate(dfs):
+        if i == 0:
+            masks.append(df[x_coord]>intersects[0])            
+        elif i == N-1:
+            masks.append(df[x_coord]<intersects[i-1])            
+        else:
+            masks.append((df[x_coord]< intersects[i-1]) | (df[x_coord] > intersects[i]) )
+
+    if N != len(masks):
+        raise ValueError("There wasn't one mask per DataFrame!")
+
+    return masks
+
+def apply_masks(dfs:List[pd.DataFrame],masks:List[pd.DataFrame])->List[pd.DataFrame]:
+    return [df.mask(mask)  for df, mask in zip(dfs,masks)] 
+
+
+def extrapolate_to_interface(df_a:pd.DataFrame,x_intersect:float,x_prop:str,fit_range=5,return_coeffs = True,return_fits = False,y_props = None,error_suffix = None,n = 1):
+    '''
+        Return a row extrapolated with a polynomial of order `n` to the interface.
+
+        returns a dataframe row with the order 
+        TODO: add weightings by errors
+        TODO: Neaten weighting by errors code to handle missing columns.
+    '''
+
+    df = df_a.query(f"{x_intersect-fit_range}<={x_prop}<={x_intersect+fit_range}")
+
+
+    x = df[x_prop]
+    # If intersect is a data point, return row with data in.
+    if (x == x_intersect).any():
+        return df[x==x_intersect] 
+
+    if y_props is None:
+        # Use all columns
+        y_props = list(df.columns)
+        # y = df #.drop(columns=x_prop) # Include x prop in fit to make life easier
+    elif isinstance(y_props,str):
+        y_props = [y_props]
+        # Turn string into a list, so a DataFrame not a series is returned
+        # y = df[[y_props]]
+    y_props.append(x_prop)
+    y = df[y_props]
+    
+    if error_suffix is None:
+        # Use all columns
+        weights = None #.drop(columns=x_prop) # Include x prop in fit to make life easier
+    else:
+        y_errs = [label+error_suffix for label in y_props]
+        weights = 1/df[y_errs]
+    # Create polynomial fit object for each column 
+    if weights is  None:
+        # Unweighted fit for each column
+        polys = {col:Polynomial.fit(x,y[col],n,w=None) for col in y_props }   #np.polynomial.polynomial.polyfit(x,y,deg=1)  #[::-1]    
+    else:
+        # Weighted fit for each column
+        polys = {col:Polynomial.fit(x,y[col],n,w=weights[col+error_suffix]) for col in y_props }   #np.polynomial.polynomial.polyfit(x,y,deg=1)  #[::-1]     
+    # Find the value at the interface
+    y_pred = {col:[poly(x_intersect)] for col,poly in polys.items()}
+    # Convert prediction int DataFrame row
+    df_pred = pd.DataFrame(y_pred)#.reshape((1,-1)),columns=df.columns)
+    
+    # Return prediction and fit objects
+    if return_fits:
+        return df_pred,polys
+    # Return prediction and coefficients
+    elif return_coeffs:
+        coeffs = {col:poly.coef for col,poly in polys.items() }
+        return df_pred, coeffs #fit
+    # Just return prediction
+    else:
+        return df_pred
+
+def interface_values(dfs:List[pd.DataFrame],bounds,x_prop,fit_range=5,y_props = None,n=1,return_fits = False,group_by_interface = False,error_suffix=None):
+    if group_by_interface:
+        return interface_vals_by_interface(dfs,bounds,x_prop,fit_range=fit_range,y_props=y_props,n=n,return_fits=return_fits,error_suffix=error_suffix)
+    
+    results = []
+    fits = []
+    for i, (bound,df) in enumerate(zip(bounds,dfs)):
+        df_results = []
+        df_fits =[]
+        for b in bound:
+            if b is not None:
+                interface_df,fit = extrapolate_to_interface(df,x_intersect=b,x_prop=x_prop,fit_range=fit_range,return_coeffs=False,return_fits=True,y_props=y_props,n=n,error_suffix=error_suffix)
+                df_results.append(interface_df)
+                if return_fits:
+                    df_fits.append(fit)
+        results.append(pd.concat(df_results))
+        if return_fits : fits.append(df_fits)
+    if return_fits: return results,fits
+    return results
+    
+def interface_vals_by_interface(dfs:List[pd.DataFrame],bounds,x_prop,fit_range=5,y_props = None,n=1,return_fits = False,error_suffix=None):
+    results = defaultdict(list)
+    fits = []
+    for i, (bound,df) in enumerate(zip(bounds,dfs)):
+        for b in bound:
+            if b is not None:
+               interface_df,fit = extrapolate_to_interface(df,x_intersect=b,x_prop=x_prop,fit_range=fit_range,return_coeffs=False,return_fits=True,y_props=y_props,n=n,error_suffix=error_suffix) 
+               results[b].append(interface_df)
+               fits.append(fit)
+    results = pd.concat({key:pd.concat(dfs) for key,dfs in results.items()})
+
+    if return_fits:
+        return results,fits
+    else:
+        return results
+
+
+    
+
+@dataclass
+class InterfaceFinder:
+    dataframes: List[pd.DataFrame]
+
+    x_coord: str
+    y_coord: str = 'density_number' 
+
+    intersect_method = 'linear'
+    intersect_kwargs : Dict = field(default_factory=dict)
+    
+    intersects: List[float] = field(init=False)
+    bounds: List[Tuple[float]] = field(init=False)
+    masks : List[pd.DataFrame] = field(init=False)
+    masked_dfs : List[pd.DataFrame] = field(init=False)
+
+    def __post_init__(self):
+        self.intersects = multi_intersect(self.dataframes,self.x_coord,self.y_coord,intersect_method=self.intersect_method,**self.intersect_kwargs)
+        self.bounds = bounds_from_intersects(self.dataframes,self.intersects,self.x_coord)
+        self.masks = masks_from_intersects(self.dataframes,self.intersects,self.x_coord)
+        self.masked_dfs = apply_masks(self.dataframes,self.masks)
+
+    
+    def interface_values(self,fit_range=5,y_props= None,n=1,return_fits = False,group_by_interface=False,error_suffix=None):
+        '''
+            Find the values extrapolated to the interfaces
+        '''
+        return interface_values(self.masked_dfs,self.bounds,x_prop=self.x_coord,fit_range=fit_range,y_props=y_props,n=n,return_fits=return_fits,group_by_interface=group_by_interface,error_suffix=error_suffix)
+
+    def deltas(self,**interface_val_kwargs):
+        
+
+        # dfs = self.interface_values(**interface_val_kwargs)
+
+        # df = pd.concat(dfs)
+        # df.groupby(by = self.x_coord)
+
+
+        deltas = {}
+
+        for i,x in enumerate(self.intersects):
+            y_a = extrapolate_to_interface(self.masked_dfs[i],x,self.x_coord,return_coeffs=False,**interface_val_kwargs)
+            y_b = extrapolate_to_interface(self.masked_dfs[i+1],x,self.x_coord,return_coeffs=False,**interface_val_kwargs)
+
+            deltas[x] = (y_a-y_b)
+
+        return pd.concat(deltas).droplevel(1)  
+
+    def make_plots(self,y_props,axs=None,show_extrap=False,show_original=False,extrap_options = {"fit_range" :5,'y_props':None,"n":1},colours = None,**kwargs):
+        import matplotlib.colors as mcolors 
+        if colours is None:
+            colours = [c for c in mcolors.BASE_COLORS.values()]
+        x_prop = self.x_coord
+        dfs= self.masked_dfs
+        og_dfs = self.dataframes
+        x_inter = self.intersects
+        if not show_extrap:
+            interface_vals = self.interface_values(return_fits=show_extrap,**extrap_options)
+        else:
+            interface_vals,fits  = self.interface_values(return_fits=show_extrap,**extrap_options)
+        interface_vals_group = self.interface_values(return_fits=show_extrap,group_by_interface=True,**extrap_options)
+
+        deltas = self.deltas
+
+        fig,axs = plt.subplots(len(y_props),sharex=False)
+
+        for i,(ax, y_prop) in enumerate(zip(axs,y_props)):
+            for j,(df,og_df) in enumerate(zip(dfs,og_dfs)):
+                # Plot the data
+                if not show_original: og_df = None
+                make_plot(df,x_prop,y_prop,ax,colour = colours[j],og_df=og_df,**kwargs)
+                
+                x = interface_vals[j][x_prop]
+                y = interface_vals[j][y_prop]
+                ax.plot(x,y,marker='.',ls=' ',c=colours[j],mec='k')
+            # plot the temperature jumps
+            if y_prop !='density_number':
+                for x,df in interface_vals_group.groupby(level=0):
+                    y = df[y_prop]
+                    ax.annotate("",xy=(x,y.min()),xytext=(x,y.max()),xycoords='data',textcoords='data',arrowprops=dict(arrowstyle="<->",
+                            connectionstyle="arc3", color='k', lw=1))
+            
+            for x in x_inter:
+                ax.axvline(x,ls='--',c='grey')
+
+
+def make_plot(df,x_prop,y_prop,ax,og_df=None,colour = 'red',**kwargs):
+    ax.plot(df[x_prop],df[y_prop],c=colour,ls='-',**kwargs)
+    if og_df is not None:
+        ax.plot(og_df[x_prop],og_df[y_prop],c=colour,ls='-.',**kwargs)
+    ax.set(xlabel=x_prop,ylabel=y_prop)
+
+def jumps():
+    raise NotImplementedError('TODO: make a single plot')
+

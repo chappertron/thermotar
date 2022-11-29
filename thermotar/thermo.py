@@ -278,6 +278,34 @@ class Thermo():
         
         return plt.axis
 
+    def block_aves(self,group_col='Step',n_blocks = 5,)-> pd.DataFrame:
+
+        bw = df_utils.n_blocks2bw(self.data[group_col],n_blocks)
+
+        return df_utils.rebin(self.data,binning_coord=group_col,bw=bw)
+
+    def estimate_error(self,group_col='Step',n_blocks=5,error_calc='sem')-> pd.DataFrame:
+        
+        aves = self.block_aves(group_col=group_col,n_blocks=n_blocks)
+
+        ave_df = aves.mean()
+
+        if error_calc == 'sem':
+            error_method = aves.sem
+        elif error_calc == 'std':
+            error_method = aves.std
+        else:
+            raise ValueError('Only sem and std are valid error calculation types.')
+        
+        error_df = error_method()
+        
+
+
+        return pd.DataFrame({'ave':ave_df,f'{error_calc}':error_df})
+
+
+
+
 if __name__ == "__main__":
     print(Thermo.split_thermo('my.log'))
     test_thermo = Thermo('split_thermos/thermo_3.csv')
