@@ -1,3 +1,4 @@
+from typing import Union, List
 import pandas as pd
 import os
 import io
@@ -190,10 +191,12 @@ def rebin(df,binning_coord,bw=0.25,bins = None,mode = 'average',weight_col: str 
     coord_min = df[coord].min() # finding min and max so it works with gfolded data
 
 
-    if not bins:
+    if bins is None:
         # if bin edges not explicitly provided, calculate them from bw and max and min of coord
         n_bins = int((coord_max-coord_min) // bw) #double divide is floor division
         bins = pd.cut(df[coord],n_bins)
+    else:
+        bins = pd.cut(df[coord],bins=bins)
 
 
     df_grouped = df.groupby(bins,as_index=False) # don't want another column also called coord!!
@@ -294,6 +297,26 @@ def grouped_by_weighted_ave(df_g :pd.DataFrame,weight_col):
 def n_blocks2bw(series:pd.Series,n:int):
     x_min,x_max = series.min(),series.max()
     return (x_max-x_min)/n
+
+
+def mask_if_equal(df:pd.DataFrame,target_col: str ,exclude:Union[List[str],str,None]=None,val:float=0.0)-> pd.DataFrame:
+    '''
+        Masks a row if `target_col` is equal to val, excluding columns listed in `exclude`
+
+        df: pd.DataFrame
+        target_col : str
+        exclude : List of columns or a coulmn to ignore
+    '''
+    if exclude is not None:
+        df =  df.set_index(exclude,append=True)
+    select = df[target_col] == val
+
+    df_masked = df.mask(select)
+
+    if exclude is None:
+        return df_masked
+    else:
+        return df_masked.reset_index(exclude)
 
 
 if __name__ == "__main__":

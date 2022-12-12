@@ -1,8 +1,8 @@
 from collections import defaultdict
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Tuple
-from scipy.interpolate import interp1d
+from typing import Dict, List, Tuple, Union
+from scipy.interpolate import interp1d,UnivariateSpline
 from scipy.optimize import fsolve
 from numpy.polynomial import Polynomial
 from functools import partial
@@ -49,20 +49,54 @@ class PairIntersectFinders:
 
         f_a = interp1d(x_a,y_a,kind=kind)
         f_b = interp1d(x_b,y_b,kind=kind)
-        f_delta = interp1d(x_a,y_b-y_a)
+        f_delta = interp1d(x_a,y_b-y_a, kind=kind, fill_value='extrapolate')
         # f_grad = interp1d(x_a,np.gradient(y_b-y_a,x_a),kind=kind) # interpolation of gradient
         # estimate from coarse!
         x_0 = PairIntersectFinders.coarse(df_a,df_b,x_prop,y_prop)
         dx = x_a.diff().mean()
         intersect = fsolve(f_delta,x0=x_0-dx/2,)
 
-        if len(intersect) == 1:
+        if len(intersect) > 1:
+            print('WARNING: Multiple intersects found')
+            return intersect[0]
+        elif len(intersect) ==1:
             return intersect[0]
         else:
-            NotImplementedError('TODO: Raise warning if more than one intersect is found!')
+            raise NotImplementedError('No intersect found')
+    
+    @staticmethod
+    def spline(df_a:pd.DataFrame,df_b:pd.DataFrame,x_prop,y_prop,y_err=None,show_plots = False,s=0.5):
+        x_a, y_a  = df_a[x_prop], df_a[y_prop] 
+        x_b, y_b  = df_b[x_prop], df_b[y_prop] 
+        if (x_a != x_b).all():
+            raise ValueError('Grids not the same!')
+        delta_y = y_a-y_b
+        delta_not_na = ~delta_y.isna()
+        delta_y=delta_y[delta_not_na]
+        x = x_a[delta_not_na]
 
 
-pair_intesect_methods = {'coarse':PairIntersectFinders.coarse,'interp':PairIntersectFinders.interp,'linear':partial(PairIntersectFinders.interp,kind='linear')}
+        if y_err is not None:
+            y_err = 1/(df_a[y_err]+df_b[y_err])[delta_not_na] # add errors
+        
+        spline_delta = UnivariateSpline(x,delta_y,w=y_err,s=s)
+        intersects = spline_delta.roots()
+        if show_plots:
+            print(intersects)
+            plt.errorbar(x,delta_y,yerr=y_err,fmt='k.')
+            plt.plot(x,spline_delta(x),c='blue',ls='--')
+            for root in intersects:
+                plt.axvline(root,ls='--',c='grey')
+        if len(intersects) ==1 :
+            return intersects[0]
+        else:
+            raise NotImplementedError('TODO: Raise warning if more than one intersect is found!')
+
+
+
+
+
+pair_intesect_methods = {'coarse':PairIntersectFinders.coarse,'interp':PairIntersectFinders.interp,'linear':partial(PairIntersectFinders.interp,kind='linear'),'cubic':partial(PairIntersectFinders.interp,kind='cubic')}
 
 def multi_intersect(dfs:List[pd.DataFrame],x_prop,y_prop,intersect_method = 'linear',**intersect_kwargs)-> List[float]:
     '''
@@ -110,20 +144,21 @@ def bounds_from_intersects(dfs:List[pd.DataFrame],intersects:List[float],x_coord
         raise ValueError("There was not one set of bounds per DataFrame!")
     return bounds
 
-def masks_from_intersects(dfs:List[pd.DataFrame],intersects:List[float],x_coord)->List[pd.DataFrame]:
+def masks_from_intersects(dfs:List[pd.DataFrame],intersects:List[float],x_coord,padding = None)->List[pd.DataFrame]:
     N = len(dfs)
-
+    if padding is None:
+        padding  = 0.0
     if N != len(intersects)+1:
         raise ValueError("Must always be N-1 intersects!")
     masks = []
 
     for i,df in enumerate(dfs):
         if i == 0:
-            masks.append(df[x_coord]>intersects[0])            
+            masks.append(df[x_coord]>intersects[0]-padding)            
         elif i == N-1:
-            masks.append(df[x_coord]<intersects[i-1])            
+            masks.append(df[x_coord]<intersects[i-1]+padding)            
         else:
-            masks.append((df[x_coord]< intersects[i-1]) | (df[x_coord] > intersects[i]) )
+            masks.append((df[x_coord]< intersects[i-1]+padding) | (df[x_coord] > intersects[i]-padding) )
 
     if N != len(masks):
         raise ValueError("There wasn't one mask per DataFrame!")
@@ -141,6 +176,7 @@ def extrapolate_to_interface(df_a:pd.DataFrame,x_intersect:float,x_prop:str,fit_
         returns a dataframe row with the order 
         TODO: add weightings by errors
         TODO: Neaten weighting by errors code to handle missing columns.
+        TODO: Weighting can only currently be used on columns when not None
     '''
 
     df = df_a.query(f"{x_intersect-fit_range}<={x_prop}<={x_intersect+fit_range}")
@@ -151,23 +187,34 @@ def extrapolate_to_interface(df_a:pd.DataFrame,x_intersect:float,x_prop:str,fit_
     if (x == x_intersect).any():
         return df[x==x_intersect] 
 
+    if y_props is None and error_suffix is not None:
+        raise ValueError("Cannot currently use weighted fitting without specifying columns")
+
+    print(y_props)
+
     if y_props is None:
-        # Use all columns
-        y_props = list(df.columns)
+        # Use all columns excluding x_prop and then readd
+        y_props = list(df.drop(columns = x_prop).columns)
         # y = df #.drop(columns=x_prop) # Include x prop in fit to make life easier
     elif isinstance(y_props,str):
         y_props = [y_props]
         # Turn string into a list, so a DataFrame not a series is returned
         # y = df[[y_props]]
-    y_props.append(x_prop)
+    y_props = y_props.copy()
+    y_props.insert(0,x_prop) # put x at the beginning of the list
     y = df[y_props]
     
     if error_suffix is None:
         # Use all columns
         weights = None #.drop(columns=x_prop) # Include x prop in fit to make life easier
     else:
-        y_errs = [label+error_suffix for label in y_props]
-        weights = 1/df[y_errs]
+        # y_errs = [label+error_suffix for label in y_props]
+        # weights = [1/df[y_errs]  ]
+        all_cols =df.columns
+        # Iterate over columns. If in all_cols set to 1/error, else just None
+        weights = {err_col:1/df[err_col] if err_col in all_cols and err_col != x_prop else None for err_col in (col+error_suffix for col in y_props)}
+    
+         
     # Create polynomial fit object for each column 
     if weights is  None:
         # Unweighted fit for each column
@@ -237,8 +284,9 @@ class InterfaceFinder:
     x_coord: str
     y_coord: str = 'density_number' 
 
-    intersect_method = 'linear'
+    intersect_method: str = 'linear'
     intersect_kwargs : Dict = field(default_factory=dict)
+    pad_masks : float = None
     
     intersects: List[float] = field(init=False)
     bounds: List[Tuple[float]] = field(init=False)
@@ -248,7 +296,7 @@ class InterfaceFinder:
     def __post_init__(self):
         self.intersects = multi_intersect(self.dataframes,self.x_coord,self.y_coord,intersect_method=self.intersect_method,**self.intersect_kwargs)
         self.bounds = bounds_from_intersects(self.dataframes,self.intersects,self.x_coord)
-        self.masks = masks_from_intersects(self.dataframes,self.intersects,self.x_coord)
+        self.masks = masks_from_intersects(self.dataframes,self.intersects,self.x_coord,padding = self.pad_masks)
         self.masked_dfs = apply_masks(self.dataframes,self.masks)
 
     
@@ -277,7 +325,7 @@ class InterfaceFinder:
 
         return pd.concat(deltas).droplevel(1)  
 
-    def make_plots(self,y_props,axs=None,show_extrap=False,show_original=False,extrap_options = {"fit_range" :5,'y_props':None,"n":1},colours = None,**kwargs):
+    def make_plots(self,y_props,axs=None,show_extrap=False,show_original=False,extrap_options = {"fit_range" :5,"n":1},colours = None,**kwargs):
         import matplotlib.colors as mcolors 
         if colours is None:
             colours = [c for c in mcolors.BASE_COLORS.values()]
@@ -286,20 +334,25 @@ class InterfaceFinder:
         og_dfs = self.dataframes
         x_inter = self.intersects
         if not show_extrap:
-            interface_vals = self.interface_values(return_fits=show_extrap,**extrap_options)
+            interface_vals = self.interface_values(return_fits=show_extrap,y_props=y_props,**extrap_options)
         else:
-            interface_vals,fits  = self.interface_values(return_fits=show_extrap,**extrap_options)
-        interface_vals_group = self.interface_values(return_fits=show_extrap,group_by_interface=True,**extrap_options)
+            interface_vals,fits  = self.interface_values(return_fits=show_extrap,y_props=y_props,**extrap_options)
+        interface_vals_group = self.interface_values(group_by_interface=True,y_props=y_props,**extrap_options)
 
         deltas = self.deltas
 
         fig,axs = plt.subplots(len(y_props),sharex=False)
 
-        for i,(ax, y_prop) in enumerate(zip(axs,y_props)):
+        for (ax, y_prop) in zip(axs,y_props):
             for j,(df,og_df) in enumerate(zip(dfs,og_dfs)):
                 # Plot the data
                 if not show_original: og_df = None
                 make_plot(df,x_prop,y_prop,ax,colour = colours[j],og_df=og_df,**kwargs)
+                if show_extrap:
+                    for k,x0 in enumerate((b for  b in self.bounds[j] if b is not None)):
+                        if x0 is not None:
+                            xs = np.linspace(x0-extrap_options['fit_range'],x0+extrap_options['fit_range'])    
+                            plot_extrap(df,y_prop,xs,fits[j][k],ax,colour = colours[j]) 
                 
                 x = interface_vals[j][x_prop]
                 y = interface_vals[j][y_prop]
@@ -320,6 +373,12 @@ def make_plot(df,x_prop,y_prop,ax,og_df=None,colour = 'red',**kwargs):
     if og_df is not None:
         ax.plot(og_df[x_prop],og_df[y_prop],c=colour,ls='-.',**kwargs)
     ax.set(xlabel=x_prop,ylabel=y_prop)
+def plot_extrap(df,y_prop,xs,fits,ax,colour = 'red'):
+    fit = fits[y_prop]
+    ax.plot(xs,fit(xs),c=colour,ls='--')
+
+
+
 
 def jumps():
     raise NotImplementedError('TODO: make a single plot')

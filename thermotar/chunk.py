@@ -284,7 +284,7 @@ class Chunk():
         pass
 
 
-    def rebin(self,coord,bw=0.25,nbins = None,mode ='average',inplace=False,new_coord_loc = "mid",weights = None):
+    def rebin(self,coord,bw=0.25,bins = None,nbins = None,mode ='average',inplace=False,new_coord_loc = "mid",weights = None):
         ''' 
             TODO - impelement n_bins argument for 1d bins
             Rebin the data based on coordinates for a given new bin width.
@@ -310,11 +310,11 @@ class Chunk():
             number_coords = len(coord)
             if number_coords == 2:
                 coord1,coord2 = coord[0],coord[1]
-                df_binned = df_utils.rebin_2D(df,coord1,coord2,bw=bw,mode=mode,nbins=nbins,new_coord_loc=new_coord_loc,weight_col=weights)
+                df_binned = df_utils.rebin_2D(df,coord1,coord2,bw=bw,bins=bins,mode=mode,nbins=nbins,new_coord_loc=new_coord_loc,weight_col=weights)
             elif np.number >= 3:
                 raise NotImplementedError("Binning in more than two dimensions not yet supported")
         else:
-            df_binned = df_utils.rebin(df,coord,bw=bw,mode = mode,weight_col=weights)
+            df_binned = df_utils.rebin(df,coord,bw=bw,mode = mode,weight_col=weights,bins=bins)
         # coord_max = df[coord].max()
         # coord_min = df[coord].min() # finding min and max so it works with gfolded data
 
