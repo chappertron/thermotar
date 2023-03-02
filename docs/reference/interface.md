@@ -1,2 +1,2 @@
 ## Intersect and Interface Finding
-::: thermotar.chunk.intersects
+::: thermotar.intersects

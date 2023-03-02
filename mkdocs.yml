@@ -9,8 +9,9 @@ nav:
   - Reference:
     - Chunk: 
       - Chunk1: 'reference/chunk.md'
-      - Chunk2: 'reference/chunk.md'
+
     - Thermo: 'reference/thermo.md'
+    - Intersects: 'reference/interface.md'
   - explanation.md
 
 plugins:
