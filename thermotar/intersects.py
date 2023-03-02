@@ -154,10 +154,10 @@ def multi_intersect(
 
     return intersects
 
-
+#-> List[Tuple[Union(float, None), Union(float, None)]]
 def bounds_from_intersects(
     intersects: List[float],
-) -> List[Tuple[Union(float, None), Union(float, None)]]:
+) :
     """
     Find the limits either side of each dataframe.
     TODO: Check that the functions that calll this have the right signature
