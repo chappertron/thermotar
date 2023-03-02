@@ -37,7 +37,7 @@ class Potential(th.Chunk):
         epsilon_0_AA = epsilon_0 * 1e-10 # convert F m^-1 -> F AA^-1
         
         
-        # all P, Q and rho are provided in units of C per Angstrom^-n, where n depends on the system
+        # all P, Q and rho are provided in units of C per Angstrom^-n, where n depends on which multipole moment
         
         # add the appropiate column names
         

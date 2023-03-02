@@ -1,0 +1,19 @@
+site_name: Thermotar Docs
+
+theme: material
+
+nav:
+  - Thermotar Docs: index.md
+  - tutorials.md
+  - How-To Guides: how-to-guides.md
+  - Reference:
+    - Chunk: 
+      - Chunk1: 'reference/chunk.md'
+      - Chunk2: 'reference/chunk.md'
+    - Thermo: 'reference/thermo.md'
+  - explanation.md
+
+plugins:
+  - mkdocstrings
+  - search
+

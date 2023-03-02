@@ -1,14 +1,19 @@
 # thermotar
-For importing and generating some LAMMPS and GROMACS files types, with a light bit of analysing too
+For importing some LAMMPS and GROMACS files types, with a light bit of analysing too.
 
 This is very alpha software. Well whatever comes before alpha really.
 
 
-Installation:
+## Installation:
+  Quick install:
+  Run from the root directory of the project:
+  ```sh
+  pip install .
+  ```
 
   Currently no pip or conda distribution.
   
-  Easiest way to install is to run setup.py in thermotar.
+  <!-- Easiest way to install is to run setup.py in thermotar. -->
   
   Specify the develop option when doing so, so that changes you make are reflected in the installation.
   
@@ -16,14 +21,19 @@ Installation:
   
   
   
-Basic usage:
-
-
+## Basic usage
 To read a lammps log file:
+``` python
   import thermotar as th
+  # Read LAMMPS log file
+  # By default reads the last runs output
   thermo = th.create_thermos('log.lammps')
-  
-The thermo object then contains a .data method which is a pandas dataframe containing all the data from the last set of log values.
+
+  # Read data from chunk ave or RDF
+  # Reads only the last table
+  chunk = th.create_chunk('chunk.prof')
+``` 
+The thermo object then contains a .data method which is a Pandas dataframe containing all the data from the last set of log values.
 
 
 
