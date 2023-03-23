@@ -49,8 +49,8 @@ class PairIntersectFinders:
         if (x_a != x_b).all():
             raise ValueError("Grids not the same!")
 
-        f_a = interp1d(x_a, y_a, kind=kind)
-        f_b = interp1d(x_b, y_b, kind=kind)
+        # interp1d(x_a, y_a, kind=kind)
+        # interp1d(x_b, y_b, kind=kind)
         f_delta = interp1d(x_a, y_b - y_a, kind=kind, fill_value="extrapolate")
         # f_grad = interp1d(x_a,np.gradient(y_b-y_a,x_a),kind=kind) # interpolation of gradient
         # estimate from coarse!
@@ -142,7 +142,7 @@ def multi_intersect(
         try:
             intersect_finder = pair_intesect_methods[intersect_method]
         except KeyError:
-            raise NotImplemented(f"Invalid Intersect Method! {intersect_method}")
+            raise NotImplementedError(f"Invalid Intersect Method! {intersect_method}")
     intersects = []
     # iterate over all pairs of DataFrames and fund the intersections
     for i, (df_a, df_b) in enumerate(zip(dfs, dfs[1:])):
@@ -154,10 +154,11 @@ def multi_intersect(
 
     return intersects
 
-#-> List[Tuple[Union(float, None), Union(float, None)]]
+
+# -> List[Tuple[Union(float, None), Union(float, None)]]
 def bounds_from_intersects(
     intersects: List[float],
-) :
+):
     """
     Find the limits either side of each dataframe.
     TODO: Check that the functions that calll this have the right signature
@@ -181,7 +182,10 @@ def bounds_from_intersects(
 
 
 def masks_from_intersects(
-    dfs: List[pd.DataFrame], intersects: List[float], x_coord:str, padding:float=None
+    dfs: List[pd.DataFrame],
+    intersects: List[float],
+    x_coord: str,
+    padding: float = None,
 ) -> List[pd.DataFrame]:
     """
     From a list of intersects, create masks for the data
@@ -422,7 +426,7 @@ def interface_vals_by_interface(
 
 @dataclass
 class InterfaceFinder:
-    '''
+    """
     Find the interfaces between several DataFrames
 
     Create using:
@@ -442,7 +446,7 @@ class InterfaceFinder:
         dataframes: List of DataFrames to find interfaces between
         x_coord: Name of the x coordinate column
 
-        Optional:        
+        Optional:
         y_coord="density_number": Name of the y coordinate column to find the intersects between
 
         intersect_method: Method to use to find the intersects. See `multi_intersect` for options
@@ -452,8 +456,9 @@ class InterfaceFinder:
         bounds: List of the bounds of the masks, calculated in `__post_init__`
         masks: List of the masks, calculated in `__post_init__`
         masked_dfs: List of the masked DataFrames, calculated in `__post_init__`
-    
-    '''
+
+    """
+
     dataframes: List[pd.DataFrame]
 
     x_coord: str
@@ -563,8 +568,6 @@ class InterfaceFinder:
         interface_vals_group = self.interface_values(
             group_by_interface=True, y_props=y_props, **extrap_options
         )
-
-        deltas = self.deltas
 
         fig, axs = plt.subplots(len(y_props), sharex=False)
 

@@ -25,7 +25,7 @@ parser.add_argument("properties",default=['density','temp'],action='extend',narg
 args = parser.parse_args()
 
 
-# load the 
+# load the file. Try load an LMP style first, if not try a np style file.
 try:
     chunk = th.Chunk.create_chunk(args.chunk_file,style='lmp') # try lmp
     coord_name ='Coord1' #chunk.data['Coord1']
@@ -107,5 +107,5 @@ if args.eos:
         plt.xlabel(labels['density_mass'])
         plt.ylabel(labels['temp'])
         plt.show()
-    except:
+    except KeyError:
         warnings.warn("Properties were not found!!!")
