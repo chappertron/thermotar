@@ -45,8 +45,8 @@ def get_lmp_properties(file, verbose=False):
                     if verbose:
                         print(f"made a match on line {i}")
                     if verbose:
-                        print(np.array(match.groups()).astype(np.float))
-                    properties[key] = np.array(match.groups()).astype(np.float)
+                        print(np.array(match.groups()).astype(float))
+                    properties[key] = np.array(match.groups()).astype(float)
                     break  # if found move on to the next property
     return properties
 
