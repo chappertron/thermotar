@@ -168,8 +168,13 @@ def raise_col(obj, col_name):
 
 
 def rebin(
-    df, binning_coord, bw=0.25, bins=None, mode="average", weight_col: str = None
-):
+    df,
+    binning_coord,
+    bw=0.25,
+    bins=None,
+    mode="average",
+    weight_col: Union[str, None] = None,
+) -> pd.DataFrame:
     """
     Rebin the data based on coordinates for a given new bin width.
     Default is to perform averages over these bins.
@@ -227,7 +232,7 @@ def rebin_2D(
     nbins=None,
     bins=None,
     mode="average",
-    weight_col: str = None,
+    weight_col: Union[str, None] = None,
     new_coord_loc="mid",
 ):
     """
@@ -283,7 +288,7 @@ def rebin_2D(
     else:
         # TODO allow for different predefined bins in each direction
         bins1 = bins2 = bins
-    print(n_bins1, n_bins2)
+    # print(n_bins1, n_bins2)
     df_grouped: pd.DataFrameGroupBy = df.groupby(
         by=[bins1, bins2]
     )  # don't want another column also called coord!!

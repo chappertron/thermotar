@@ -27,7 +27,6 @@ class Thermo:
         *,
         CLEANUP: bool = True,
         properties=None,
-        **kwargs,
     ):
         """
         Constructor for an object of the Thermo class.
@@ -108,6 +107,9 @@ class Thermo:
         """
         # for spheriical, area needs to be a radius or an array of points for the area as a function of r
 
+        if style != "linear":
+            raise ValueError('Currently Only `style="linear"` is supported.')
+
         if area is None:
             # find the area if it has been located in the thermo file metadata
 
@@ -118,7 +120,7 @@ class Thermo:
             elif axis == "z":
                 area = self.box_Lx * self.box_Ly
             else:
-                raise ValueError("axis must be x,y, or z")
+                raise ValueError("axis must be x, y, or z")
 
         if tstep is None:
             try:
@@ -127,7 +129,7 @@ class Thermo:
                 raise AttributeError("Timestep has not been loaded from log file")
         try:
             time = self.time
-        except:
+        except AttributeError:
             time = self.Step * tstep
 
         if method == "linear_fit":
@@ -174,17 +176,17 @@ class Thermo:
 
         if last:
             return Thermo(
-                pd.read_csv(strings_ios[-1], sep="\s+"), properties=properties
+                pd.read_csv(strings_ios[-1], sep=r"\s+"), properties=properties
             )
         if not join:
             return [
-                Thermo(pd.read_csv(csv, sep="\s+"), properties=properties)
+                Thermo(pd.read_csv(csv, sep=r"\s+"), properties=properties)
                 for csv in strings_ios
             ]
 
         else:
             joined_df = pd.concat(
-                [pd.read_csv(csv, sep="\s+") for csv in strings_ios]
+                [pd.read_csv(csv, sep=r"\s+") for csv in strings_ios]
             ).reset_index()
 
             return Thermo(joined_df, properties=properties)

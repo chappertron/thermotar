@@ -8,6 +8,7 @@ from scipy.integrate import cumtrapz, trapz
 import numpy as np
 import pandas as pd
 
+
 class Potential(th.Chunk):
     # list of methods that can be inherited in replicator instances to apply to sub dfs.
     # these need to act on dfs.
