@@ -1,5 +1,5 @@
 import aiofiles
-from thermo import Thermo 
+from .thermo import Thermo 
 import warnings
 from typing import Union, List
 from io import StringIO
