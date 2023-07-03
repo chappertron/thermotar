@@ -7,10 +7,9 @@ import warnings
 from .utils import parse_logs
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import os
 from io import StringIO
-from typing import Union, List
+from typing import Any, Union, List, Optional, Dict
 
 # from .utils import lmp_utils
 from .utils import lmp_utils
@@ -26,16 +25,17 @@ class Thermo:
         self,
         thermo_df: pd.DataFrame,
         *,
-        CLEANUP: bool = True,
-        properties=None,
+        cleanup: bool = True,
+        properties: Optional[Dict[str, Any]] = None,
     ):
         """
         Constructor for an object of the Thermo class.
 
         Args:
-                thermo_df : Pandas DataFrame containing thermodynamic information.
+            thermo_df : Pandas DataFrame containing thermodynamic information.
             CLEANUP : Option to remove c_ etc. prefixes from column names.
-            properties : dict of properties parsed from the log file. Used in create thermos or the get_props class method.
+            properties : dict of properties parsed from the log file.
+            Used in create thermos or the get_props class method.
         Returns:
 
         """
@@ -43,22 +43,24 @@ class Thermo:
 
         # clean up dataframe
 
-        if CLEANUP:
+        if cleanup:
             # apply strip_pref function to remove 'c_/f_/v_' prefixes to all columns
             self.data.rename(columns=lmp_utils.strip_pref, inplace=True)
-            # replace '/' and '[]' as well as other python unfriendly ccharacters,so these columns can be accessed with attributes
+            # replace '/' and '[]' as well as other python unfriendly characters, 
+            # so these columns can be accessed with attributes
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
 
         self.properties_dict = properties
 
-        if self.properties_dict:
+        if self.properties_dict is not None:
             # set up properties
             if len(self.properties_dict) > 0:
                 ### TODO: set up setters and getters to the properties dict instead
                 try:
                     self.time_step = self.properties_dict["time_step"]
                     self.box = self.properties_dict["box"]
-                    # called box_Lx rather than Lx incase it is reported via thermo output
+                    # called box_Lx rather than Lx incase 
+                    # it is reported via thermo output
                     self.box_Lx = self.box[3] - self.box[0]
                     self.box_Ly = self.box[4] - self.box[1]
                     self.box_Lz = self.box[5] - self.box[2]
@@ -68,30 +70,33 @@ class Thermo:
 
         # for col in self.data.columns:
         #     setattr(self, col ,getattr(self.data, col))
-        # sets setters and getters for each column of the df as attributes of the CLASS. Has to be class, not the object itself
+        # sets setters and getters for each column of the df as attributes of the CLASS 
+        # Has to be class, not the object itself
         df_utils.raise_columns(self)
 
     def heat_flux(
         self,
-        thermostat_C="thermostatC",
-        thermostat_H="thermostatH",
-        area=None,
-        style="linear",
-        axis="z",
-        C_H_ratio=1.0,
-        method="linear_fit",
-        direction=1,
-        real_2_si=True,
-        tstep=None,
-    ):
+        thermostat_C:str="thermostatC",
+        thermostat_H:str="thermostatH",
+        area:Optional[float]=None,
+        style:str="linear",
+        axis:str="z",
+        C_H_ratio:float=1.0,
+        method:str="linear_fit",
+        direction:int=1,
+        real_2_si:bool=True,
+        tstep:Optional[float]=None,
+    )->float:
         """
         thermostat_C  - str:
             Column name of the cold thermostat energy removal
         thermostat_H - str:
             Column name of the hot thermostat compute
         Area - None, float,array:
-            if None, work out cross sectional area from properties, if a float, assumes constant area along the axis,
-            if an array, take values. If style is radial, and a float, this is taken to be the radius of the device
+            if None, work out cross sectional area from properties, if a float, assumes 
+            constant area along the axis,
+            if an array, take values. If style is radial, and a float, 
+            this is taken to be the radius of the device
             Default - None
         style - str:
             Can be linear or radial atm - the geometry of the syste,
@@ -101,12 +106,15 @@ class Thermo:
                 default 'z'
 
         C_H_ratio - float:
-            ratio between the volume of the cold to the volume of the hot thermostats, to normalise heat flow.
+            ratio between the volume of the cold to the volume of the hot thermostats, 
+            to normalise heat flow. NOT CURRENTLY IMPLEMENTED
 
-        direction - hot to cold = 1,  cold to hot = -1 - matches the sign of the thermal gradient
+        direction - hot to cold = 1,  cold to hot = -1 - matches 
+                    the sign of the thermal gradient
 
         """
-        # for spheriical, area needs to be a radius or an array of points for the area as a function of r
+        # for spheriical, area needs to be a radius or an array 
+        # of points for the area as a function of r
 
         if style != "linear":
             raise ValueError('Currently Only `style="linear"` is supported.')
@@ -141,7 +149,8 @@ class Thermo:
                 time, -1 * direction * self.data[thermostat_C], 1
             )  # -1 * thermostat Cso heat flows from hot to cold
 
-            # average the hot and cold thermostats # second divide by 2 is accounting for the fact there are 2 fluxes in the box
+            # average the hot and cold thermostats # second divide by 2 is accounting 
+            # for the fact there are 2 fluxes in the box
             e_flow = (fit_H[0] + fit_C[0]) / 2 / 2
 
         if real_2_si:
@@ -153,16 +162,21 @@ class Thermo:
         return e_flow / area
 
     @classmethod
-    def create_thermos(cls, logfile, join=True, get_properties=True, last=True):
+    def create_thermos(
+        cls, logfile, join=True, get_properties=True, last=True
+    ) -> Union[List["Thermo"], "Thermo"]:
         """
         utilises parse_thermo to create thermo objects
 
-        join: boolean -
-            Decide whether to concatenate the thermo output of different run commands into one df or not
+        `join`: bool -
+            Decide whether to concatenate the thermo output of different run commands
+            into one df or not
             If False a list of thermo objects is returned
             default: True
-        last: Just get the last set of data, usually production steps.
-
+        `last`: bool -
+            Just get the last set of data, usually production steps.
+            `last` overrides `join`.
+            default: True
 
         """
 
@@ -274,7 +288,8 @@ class Thermo:
 
     @staticmethod
     def get_properties(logfile):
-        """From a log file get properties defined in parse_logs.py in lmp_properties_re"""
+        """From a log file get properties defined in parse_logs.py in 
+        lmp_properties_re"""
 
         properties_dict = parse_logs.get_lmp_properties(logfile)
 
@@ -313,8 +328,6 @@ class Thermo:
         self.data[property].plot.density(**kwargs)
         self.data[property].plot.hist(**kwargs, density=True, bins=bins)
 
-        return plt.axis
-
     def block_aves(
         self,
         group_col="Step",
@@ -332,13 +345,13 @@ class Thermo:
         ave_df = aves.mean()
 
         if error_calc == "sem":
-            error_method = aves.sem
+            error_df = aves.sem()
         elif error_calc == "std":
-            error_method = aves.std
+            error_df = aves.std()
         else:
             raise ValueError("Only sem and std are valid error calculation types.")
 
-        error_df = error_method()
+        # error_df = error_method()
 
         return pd.DataFrame({"ave": ave_df, f"{error_calc}": error_df})
 
@@ -350,7 +363,8 @@ async def async_parse_thermo(
     logfile,
 ):
     """
-    Asynchronously parses the given LAMMPS log file and outputs a list of strings that contain each thermo time series.
+    Asynchronously parses the given LAMMPS log file and outputs a list of strings 
+    that contain each thermo time series.
     """
     thermo_datas = []
     async with aiofiles.open(logfile, "r") as stream:
@@ -395,10 +409,16 @@ async def async_parse_thermo(
 
 
 async def async_create_thermos(
-    logfile, join=True, get_properties=True, last=True
+    logfile, join=True, get_properties=False, last=True
 ) -> Union[List[Thermo], Thermo]:
+    """
+    Asynchronously parses the given LAMMPS log file and outputs a list of
+    thermo objects.
+    Uses aiofiles to read the file asynchronously.
+    """
     strings_ios = await async_parse_thermo(logfile)
-
+    if get_properties:
+        raise NotImplementedError("Properties not implemented yet for async version")
     properties = None
 
     if last:
@@ -421,6 +441,6 @@ async def async_create_thermos(
 
 if __name__ == "__main__":
     print(Thermo.split_thermo("my.log"))
-    test_thermo = Thermo("split_thermos/thermo_3.csv")
+    test_thermo = Thermo(pd.read_csv("split_thermos/thermo_3.csv"))
     print(test_thermo.data)
     print(test_thermo.plot_property("Temp"))
