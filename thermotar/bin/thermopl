@@ -7,6 +7,8 @@ from typing import Dict, Set
 from enum import Enum,auto
 from typing_extensions import Self
 
+import asyncio
+
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
 
@@ -33,6 +35,7 @@ class Units(Enum):
 
         return Units[s]
         
+
 #units  = 
 
 # TODO use this state class, or not.
@@ -43,20 +46,24 @@ class Units(Enum):
 #     dfs: pd.DataFrame
 
 
-def main(args=None):
+async def main(args=None):
     args = parse_args(args=args)
 
     import thermotar as th
+    from thermotar.thermo import async_create_thermos
     import matplotlib.pyplot as plt
     import numpy as np
     thermos: Dict[Path, th.Thermo] = {}
 
     properties_in_all: Set[str] = set()
     all_properties: Set[str] = set()
+    
+# TODO TRY `to_thread`
     for file in args.log_files:
-        # Load all thermos in one list
+         # Load all thermos in one list
         thermo = th.create_thermos(file, last=False, join=True)
-
+    #     thermo = await th.thermo.async_parse_thermo(file)
+    #     print(thermo)
         properties = thermo.data.columns
 
         print(file, properties)
@@ -73,7 +80,20 @@ def main(args=None):
             properties_in_all = all_properties
         else:
             properties_in_all = properties_in_all.intersection(properties)
-    
+    # Sending to other threads so non-blocking
+    # With 'async': thermopl rep_*/logfile.log  5.18s user 2.61s system 6% cpu 1:52.55 total
+    # Joblib default params: thermopl rep_*/logfile.log  4.54s user 1.60s system 9% cpu 1:06.99 total
+    # Joblib Prefer threads:thermopl rep_*/logfile.log  4.34s user 1.44s system 9% cpu 1:00.43 total
+    # Joblib threads, lots
+    # Old impl: about 1 min 
+
+    #thermos = Parallel(n_jobs=len(args.log_files),prefer="threads")(delayed(th.create_thermos)(file) for file in args.log_files) 
+    # Draft async versions. TODO add option for async file loading!!!
+    # tasks = [async_create_thermos(file) for file in args.log_files]
+    # # thermos = await asyncio.gather(*tasks)
+
+    # thermos = await asyncio.gather(*tasks)
+
     properties_in_some = all_properties.symmetric_difference(properties_in_all)
 
     
@@ -107,4 +127,6 @@ def main(args=None):
     plt.show()
     
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
+    #main()
