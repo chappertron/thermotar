@@ -1,7 +1,23 @@
 site_name: Thermotar Docs
 
-theme: material
-
+theme: 
+  name: material
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: red  
+      accent: red
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)' ## Obey the system color scheme 
+      scheme: slate
+      primary: red  
+      accent: red
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    # can use navigation_depth to allow more layers of docs to be shown in the sidebar
 nav:
   - Thermotar Docs: index.md
   - tutorials.md
