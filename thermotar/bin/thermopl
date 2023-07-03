@@ -3,40 +3,43 @@
 
 import argparse
 from pathlib import Path
-from typing import Dict, Set 
-from enum import Enum,auto
+from typing import Dict, Set
+from enum import Enum, auto
 from typing_extensions import Self
 
 import asyncio
+
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("log_files", nargs="+", type=Path)
-    parser.add_argument("--units",default=Units.REAL,type=Units.from_str)
+    parser.add_argument("--units", default=Units.REAL, type=Units.from_str)
     return parser.parse_args()
 
+
 class Units(Enum):
-    '''
+    """
     Which set of LAMMPS units are we using?
 
     Current plan is to use to index a Dict. Maybe a rust style enum may be better?
-    '''
+    """
+
     REAL = auto()
-    LJ  = auto()
-    
+    LJ = auto()
+
     @classmethod
-    def from_str(cls,s:str)->Self:
-        '''
+    def from_str(cls, s: str) -> Self:
+        """
         Get units enum from a string
-        '''
-        
+        """
+
         s = s.upper()
 
         return Units[s]
-        
 
-#units  = 
+
+# units  =
 
 # TODO use this state class, or not.
 # @dataclass()
@@ -50,25 +53,26 @@ async def main(args=None):
     args = parse_args(args=args)
 
     import thermotar as th
-    from thermotar.thermo import async_create_thermos
+    from thermotar.async_thermo import async_create_thermos
     import matplotlib.pyplot as plt
     import numpy as np
+
     thermos: Dict[Path, th.Thermo] = {}
 
     properties_in_all: Set[str] = set()
     all_properties: Set[str] = set()
-    
-# TODO TRY `to_thread`
+
+    # TODO TRY `to_thread`
     for file in args.log_files:
-         # Load all thermos in one list
+        # Load all thermos in one list
         thermo = th.create_thermos(file, last=False, join=True)
-    #     thermo = await th.thermo.async_parse_thermo(file)
-    #     print(thermo)
+        #     thermo = await th.thermo.async_parse_thermo(file)
+        #     print(thermo)
         properties = thermo.data.columns
 
         print(file, properties)
-        #plt.plot(thermo.data[properties[0]], thermo.data[properties[2]])
-        
+        # plt.plot(thermo.data[properties[0]], thermo.data[properties[2]])
+
         thermos[file] = thermo
 
         properties = set(properties)
@@ -85,9 +89,9 @@ async def main(args=None):
     # Joblib default params: thermopl rep_*/logfile.log  4.54s user 1.60s system 9% cpu 1:06.99 total
     # Joblib Prefer threads:thermopl rep_*/logfile.log  4.34s user 1.44s system 9% cpu 1:00.43 total
     # Joblib threads, lots
-    # Old impl: about 1 min 
+    # Old impl: about 1 min
 
-    #thermos = Parallel(n_jobs=len(args.log_files),prefer="threads")(delayed(th.create_thermos)(file) for file in args.log_files) 
+    # thermos = Parallel(n_jobs=len(args.log_files),prefer="threads")(delayed(th.create_thermos)(file) for file in args.log_files)
     # Draft async versions. TODO add option for async file loading!!!
     # tasks = [async_create_thermos(file) for file in args.log_files]
     # # thermos = await asyncio.gather(*tasks)
@@ -96,37 +100,34 @@ async def main(args=None):
 
     properties_in_some = all_properties.symmetric_difference(properties_in_all)
 
-    
-
     print("Properties in All Files")
-    for i,prop in enumerate(properties_in_all):
+    for i, prop in enumerate(properties_in_all):
         print(f"{i}: {prop}")
 
     print("Properties in Some Files")
-    for i,prop in enumerate(properties_in_some,start=len(properties_in_all)):
+    for i, prop in enumerate(properties_in_some, start=len(properties_in_all)):
         print(f"{i}: {prop}")
-    
+
     # Handle user input
     property_indicies = input()
     property_indicies = [int(i) for i in property_indicies.split()]
 
-    
     properties = list(properties_in_all) + list(properties_in_some)
-    properties_to_plot  = [properties[i] for i in property_indicies]
-    
-    fig,axes = plt.subplots(len(properties_to_plot)) 
-    
-    if not isinstance(axes,np.ndarray):
+    properties_to_plot = [properties[i] for i in property_indicies]
+
+    fig, axes = plt.subplots(len(properties_to_plot))
+
+    if not isinstance(axes, np.ndarray):
         axes = [axes]
-    
-    
 
     for file, thermo in thermos.items():
-        for i,prop in enumerate(properties_to_plot):
-            axes[i].plot(thermo.Step,thermo.data[prop],label=f'{file}')
+        for i, prop in enumerate(properties_to_plot):
+            axes[i].plot(thermo.Step, thermo.data[prop], label=f"{file}")
     plt.show()
-    
+
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
-    #main()
+    # main()
