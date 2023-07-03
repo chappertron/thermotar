@@ -1,0 +1,110 @@
+#! /usr/bin/env python
+
+
+import argparse
+from pathlib import Path
+from typing import Dict, Set 
+from enum import Enum,auto
+from typing_extensions import Self
+
+def parse_args(args=None):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("log_files", nargs="+", type=Path)
+    parser.add_argument("--units",default=Units.REAL,type=Units.from_str)
+    return parser.parse_args()
+
+class Units(Enum):
+    '''
+    Which set of LAMMPS units are we using?
+
+    Current plan is to use to index a Dict. Maybe a rust style enum may be better?
+    '''
+    REAL = auto()
+    LJ  = auto()
+    
+    @classmethod
+    def from_str(cls,s:str)->Self:
+        '''
+        Get units enum from a string
+        '''
+        
+        s = s.upper()
+
+        return Units[s]
+        
+#units  = 
+
+# TODO use this state class, or not.
+# @dataclass()
+# class State:
+#     properties_in_all: Set[str]
+#     properties_in_some: Set[str]
+#     dfs: pd.DataFrame
+
+
+def main(args=None):
+    args = parse_args(args=args)
+
+    import thermotar as th
+    import matplotlib.pyplot as plt
+    import numpy as np
+    thermos: Dict[Path, th.Thermo] = {}
+
+    properties_in_all: Set[str] = set()
+    all_properties: Set[str] = set()
+    for file in args.log_files:
+        # Load all thermos in one list
+        thermo = th.create_thermos(file, last=False, join=True)
+
+        properties = thermo.data.columns
+
+        print(file, properties)
+        #plt.plot(thermo.data[properties[0]], thermo.data[properties[2]])
+        
+        thermos[file] = thermo
+
+        properties = set(properties)
+
+        all_properties = all_properties.union(properties)
+
+        # Properties that aren't in this can't be in all
+        if len(properties_in_all) == 0:
+            properties_in_all = all_properties
+        else:
+            properties_in_all = properties_in_all.intersection(properties)
+    
+    properties_in_some = all_properties.symmetric_difference(properties_in_all)
+
+    
+
+    print("Properties in All Files")
+    for i,prop in enumerate(properties_in_all):
+        print(f"{i}: {prop}")
+
+    print("Properties in Some Files")
+    for i,prop in enumerate(properties_in_some,start=len(properties_in_all)):
+        print(f"{i}: {prop}")
+    
+    # Handle user input
+    property_indicies = input()
+    property_indicies = [int(i) for i in property_indicies.split()]
+
+    
+    properties = list(properties_in_all) + list(properties_in_some)
+    properties_to_plot  = [properties[i] for i in property_indicies]
+    
+    fig,axes = plt.subplots(len(properties_to_plot)) 
+    
+    if not isinstance(axes,np.ndarray):
+        axes = [axes]
+    
+    
+
+    for file, thermo in thermos.items():
+        for i,prop in enumerate(properties_to_plot):
+            axes[i].plot(thermo.Step,thermo.data[prop],label=f'{file}')
+    plt.show()
+    
+if __name__ == "__main__":
+    main()
