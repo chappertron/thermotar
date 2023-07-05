@@ -100,11 +100,18 @@ async def main(args=None):
 
     properties_in_some = all_properties.symmetric_difference(properties_in_all)
 
+    # Convert properties to lists and then sort
+
+    properties_in_all = sorted(list(properties_in_all))
+    properties_in_some = sorted(list(properties_in_some))
+    
+
     print("Properties in All Files")
     for i, prop in enumerate(properties_in_all):
         print(f"{i}: {prop}")
 
-    print("Properties in Some Files")
+    if len(properties_in_some) != 0:
+        print("Properties in Some Files")
     for i, prop in enumerate(properties_in_some, start=len(properties_in_all)):
         print(f"{i}: {prop}")
 
@@ -115,7 +122,7 @@ async def main(args=None):
     properties = list(properties_in_all) + list(properties_in_some)
     properties_to_plot = [properties[i] for i in property_indicies]
 
-    fig, axes = plt.subplots(len(properties_to_plot))
+    _fig, axes = plt.subplots(len(properties_to_plot), sharex=True)
 
     if not isinstance(axes, np.ndarray):
         axes = [axes]
@@ -123,6 +130,9 @@ async def main(args=None):
     for file, thermo in thermos.items():
         for i, prop in enumerate(properties_to_plot):
             axes[i].plot(thermo.Step, thermo.data[prop], label=f"{file}")
+            axes[i].set(ylabel=prop)
+    axes[-1].set(xlabel="Step")
+    axes[-1].legend()
     plt.show()
 
 
