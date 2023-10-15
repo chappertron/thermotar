@@ -335,6 +335,10 @@ class Thermo:
         group_col="Step",
         n_blocks=5,
     ) -> pd.DataFrame:
+        """
+        Divide the simulation into `n_blocks` and take the average of each block
+        Used for the calculation of error estimates.
+        """
         bw = df_utils.n_blocks2bw(self.data[group_col], n_blocks)
 
         return df_utils.rebin(self.data, binning_coord=group_col, bw=bw)
@@ -342,6 +346,14 @@ class Thermo:
     def estimate_error(
         self, group_col="Step", n_blocks=5, error_calc="sem"
     ) -> pd.DataFrame:
+        """
+        Block averaging estimates for the errror of the mean and error in the data.
+        
+        Args:
+            group_col: Column to group the data by. Typically "Step" or "Time"
+            n_blocks: Number of blocks to divide the thermo data into.
+            error_calc: Method of estimating the error. Either "sem" or "std". Default "sem"
+        """
         aves = self.block_aves(group_col=group_col, n_blocks=n_blocks)
 
         ave_df = aves.mean()
