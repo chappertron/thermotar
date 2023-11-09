@@ -32,6 +32,11 @@ To read a lammps log file:
   # Read data from chunk ave or RDF
   # Reads only the last table
   chunk = th.create_chunk('chunk.prof')
+
+  # Read all the chunks from a chunk/ave file
+  chunks = th.create_multi_chunks('chunk.prof')
+  # Average the different frames of multichunk into a single chunk
+  chunk = chunks.flatten_chunk()
 ``` 
 The thermo object then contains a .data method which is a Pandas dataframe containing all the data from the last set of log values.
 
