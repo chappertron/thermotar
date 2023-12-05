@@ -22,7 +22,7 @@ class Chunk:
         coord_cols=["Coord1", "Coord2", "Coord3", "coord", "Box"],
         centred=False,
         centered=None,
-        **kwargs
+        **kwargs,
     ):
         """thermo_file - string of log file location"""
         self.data: pd.DataFrame = thermo_df

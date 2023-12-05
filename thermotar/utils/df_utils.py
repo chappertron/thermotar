@@ -113,7 +113,9 @@ def comment_header(file, line_no=0, comments="#", delim=" "):
             stream.seek(0)  # go back to beginning
             # my weird approach
             try:
-                head = stream.readlines(buff + (line_size) * (line_no))[
+                head = stream.readlines(
+                    buff + (line_size) * (line_no)
+                )[
                     line_no
                 ]  # read the nth line # reverses at least the default buffer + line size per line
             except IndexError:
@@ -208,8 +210,9 @@ def rebin(
         bins = pd.cut(df[coord], bins=bins)
 
     df_grouped = df.groupby(
-        bins, as_index=False,
-        observed=True, # observed added to avoid depreaction warning
+        bins,
+        as_index=False,
+        observed=True,  # observed added to avoid depreaction warning
     )  # don't want another column also called coord!!
 
     if mode == "average" or mode == "mean":

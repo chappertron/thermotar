@@ -12,6 +12,7 @@ setup(
         "thermotar/bin/check_chunk",
         "thermotar/bin/ave_thermo",
         "thermotar/bin/thermopl",
+        "thermotar/bin/thermo_stats",
     ],
     url="",
     description="An awesome package that does something",

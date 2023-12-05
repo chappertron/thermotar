@@ -97,9 +97,7 @@ def _parse_xvg(file, return_units=True, match_units=False):
                 # combine units with undefined units
                 print("here")
 
-    if (
-        match_units
-    ):  # match up the units with the associated key. assumes all units for all legends are given in the y axis
+    if match_units:  # match up the units with the associated key. assumes all units for all legends are given in the y axis
         for i, key in enumerate(legends.keys()):
             if legends[key] == "Unitless":
                 try:

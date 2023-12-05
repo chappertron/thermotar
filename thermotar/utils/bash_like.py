@@ -13,9 +13,7 @@ def my_tail(file, N=10):
     """
 
     # take buffer size of 8192 bytes
-    buffsize = (
-        io.DEFAULT_BUFFER_SIZE
-    )  # 8192 # how much data is stored from a file stream at a time# can tell the buffer size
+    buffsize = io.DEFAULT_BUFFER_SIZE  # 8192 # how much data is stored from a file stream at a time# can tell the buffer size
     fsize = os.stat(file).st_size  # calculate the size of the file in bytes
 
     iter = 0
@@ -89,7 +87,9 @@ def _tail(file, N=20):
             else:
                 f.seek(0, 0)
                 blocks.append(f.read(block_end_byte))
-            lines_found = blocks[-1].count(
+            lines_found = blocks[
+                -1
+            ].count(
                 b"\n"
             )  # grab blocks found so far and chuck into a list #reverse tje order of the block too # number of lines total # covert the \n into binary before searching # does this check for broken lines?
             lines_to_go -= lines_found
