@@ -12,6 +12,7 @@ def argument_parser(args: Optional[Sequence[str]] = None) -> Namespace:
     parser = ArgumentParser()
     parser.add_argument("files", nargs="+", help="Files to be analysed", type=Path)
     parser.add_argument("--n_blocks", default=10, type=int)
+    parser.add_argument("--last", default=False, action="store_true")
 
     parsed = parser.parse_args(args)
 
@@ -25,6 +26,10 @@ def main():
     thermos = {
         str(file): th.create_thermos(file, join=False, last=False) for file in files
     }
+
+    if args.last: 
+        thermos = {key: [val[-1]] for key, val in thermos.items()}
+            
     # Filter out non-lists of thermos, which should not be there:
     thermos: Dict[str, List[Thermo]] = {
         key: val for key, val in thermos.items() if isinstance(val, list)
