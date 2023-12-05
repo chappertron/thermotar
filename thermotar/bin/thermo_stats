@@ -1,0 +1,44 @@
+#! /usr/bin/env python
+
+from argparse import ArgumentParser, Namespace
+from pathlib import Path
+from typing import Optional, Sequence, List, Dict
+
+import thermotar as th
+from thermotar import Thermo
+
+
+def argument_parser(args: Optional[Sequence[str]] = None) -> Namespace:
+    parser = ArgumentParser()
+    parser.add_argument("files", nargs="+", help="Files to be analysed", type=Path)
+    parser.add_argument("--n_blocks", default=10, type=int)
+
+    parsed = parser.parse_args(args)
+
+    return parsed
+
+
+def main():
+    args = argument_parser()
+    files: Sequence[Path] = args.files
+
+    thermos = {
+        str(file): th.create_thermos(file, join=False, last=False) for file in files
+    }
+    # Filter out non-lists of thermos, which should not be there:
+    thermos: Dict[str, List[Thermo]] = {
+        key: val for key, val in thermos.items() if isinstance(val, list)
+    }
+
+    print(thermos)
+
+    for file, thermo_list in thermos.items():
+        for i, thermo in enumerate(thermo_list):
+            print(f"Run {i}")
+            print(thermo.block_aves(n_blocks=10))
+            print(thermo.estimate_error(n_blocks=10))
+            print(thermo.estimate_drift())
+
+
+if __name__ == "__main__":
+    main()

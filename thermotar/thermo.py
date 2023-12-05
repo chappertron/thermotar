@@ -3,6 +3,7 @@
     Thermo Data is extracted from log files
 """
 
+from pathlib import Path
 import warnings
 from .utils import parse_logs
 import numpy as np
@@ -31,9 +32,9 @@ class Thermo:
         """
         Constructor for an object of the Thermo class.
 
-        Args:
+        Parameters:
             thermo_df : Pandas DataFrame containing thermodynamic information.
-            CLEANUP : Option to remove c_ etc. prefixes from column names.
+            cleanup : Option to remove c_ etc. prefixes from column names.
             properties : dict of properties parsed from the log file.
             Used in create thermos or the get_props class method.
         Returns:
@@ -46,7 +47,7 @@ class Thermo:
         if cleanup:
             # apply strip_pref function to remove 'c_/f_/v_' prefixes to all columns
             self.data.rename(columns=lmp_utils.strip_pref, inplace=True)
-            # replace '/' and '[]' as well as other python unfriendly characters, 
+            # replace '/' and '[]' as well as other python unfriendly characters,
             # so these columns can be accessed with attributes
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
 
@@ -59,7 +60,7 @@ class Thermo:
                 try:
                     self.time_step = self.properties_dict["time_step"]
                     self.box = self.properties_dict["box"]
-                    # called box_Lx rather than Lx incase 
+                    # called box_Lx rather than Lx incase
                     # it is reported via thermo output
                     self.box_Lx = self.box[3] - self.box[0]
                     self.box_Ly = self.box[4] - self.box[1]
@@ -70,32 +71,32 @@ class Thermo:
 
         # for col in self.data.columns:
         #     setattr(self, col ,getattr(self.data, col))
-        # sets setters and getters for each column of the df as attributes of the CLASS 
+        # sets setters and getters for each column of the df as attributes of the CLASS
         # Has to be class, not the object itself
         df_utils.raise_columns(self)
 
     def heat_flux(
         self,
-        thermostat_C:str="thermostatC",
-        thermostat_H:str="thermostatH",
-        area:Optional[float]=None,
-        style:str="linear",
-        axis:str="z",
-        C_H_ratio:float=1.0,
-        method:str="linear_fit",
-        direction:int=1,
-        real_2_si:bool=True,
-        tstep:Optional[float]=None,
-    )->float:
+        thermostat_C: str = "thermostatC",
+        thermostat_H: str = "thermostatH",
+        area: Optional[float] = None,
+        style: str = "linear",
+        axis: str = "z",
+        C_H_ratio: float = 1.0,
+        method: str = "linear_fit",
+        direction: int = 1,
+        real_2_si: bool = True,
+        tstep: Optional[float] = None,
+    ) -> float:
         """
         thermostat_C  - str:
             Column name of the cold thermostat energy removal
         thermostat_H - str:
             Column name of the hot thermostat compute
         Area - None, float,array:
-            if None, work out cross sectional area from properties, if a float, assumes 
+            if None, work out cross sectional area from properties, if a float, assumes
             constant area along the axis,
-            if an array, take values. If style is radial, and a float, 
+            if an array, take values. If style is radial, and a float,
             this is taken to be the radius of the device
             Default - None
         style - str:
@@ -106,14 +107,14 @@ class Thermo:
                 default 'z'
 
         C_H_ratio - float:
-            ratio between the volume of the cold to the volume of the hot thermostats, 
+            ratio between the volume of the cold to the volume of the hot thermostats,
             to normalise heat flow. NOT CURRENTLY IMPLEMENTED
 
-        direction - hot to cold = 1,  cold to hot = -1 - matches 
+        direction - hot to cold = 1,  cold to hot = -1 - matches
                     the sign of the thermal gradient
 
         """
-        # for spheriical, area needs to be a radius or an array 
+        # for spheriical, area needs to be a radius or an array
         # of points for the area as a function of r
 
         if style != "linear":
@@ -149,7 +150,7 @@ class Thermo:
                 time, -1 * direction * self.data[thermostat_C], 1
             )  # -1 * thermostat Cso heat flows from hot to cold
 
-            # average the hot and cold thermostats # second divide by 2 is accounting 
+            # average the hot and cold thermostats # second divide by 2 is accounting
             # for the fact there are 2 fluxes in the box
             e_flow = (fit_H[0] + fit_C[0]) / 2 / 2
 
@@ -212,7 +213,7 @@ class Thermo:
         Parses the given LAMMPS log file and outputs a list of strings that contain each
         thermo time series.
         # Change so outputs a list of thermo objects
-        Optional argument f is applied to list of strings before returning, 
+        Optional argument f is applied to list of strings before returning,
         for code reusability
 
         TODO Make more efficient
@@ -289,8 +290,19 @@ class Thermo:
         return thermo_lists
 
     @staticmethod
+    def from_csv(csv_file: Path, **kwargs) -> "Thermo":
+        """
+        Creates a thermo object from a csv file
+
+        Parameters:
+            csv_file: path to csv file
+            kwargs: keyword arguments to pass to `pandas.read_csv`
+        """
+        return Thermo(pd.read_csv(csv_file, **kwargs))
+
+    @staticmethod
     def get_properties(logfile):
-        """From a log file get properties defined in parse_logs.py in 
+        """From a log file get properties defined in parse_logs.py in
         lmp_properties_re"""
 
         properties_dict = parse_logs.get_lmp_properties(logfile)
@@ -348,7 +360,7 @@ class Thermo:
     ) -> pd.DataFrame:
         """
         Block averaging estimates for the errror of the mean and error in the data.
-        
+
         Args:
             group_col: Column to group the data by. Typically "Step" or "Time"
             n_blocks: Number of blocks to divide the thermo data into.
@@ -367,10 +379,36 @@ class Thermo:
 
         # error_df = error_method()
 
+        # TODO Change sem/std to err?
         return pd.DataFrame({"ave": ave_df, f"{error_calc}": error_df})
 
+    def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
+        """
+        Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
 
+        """
 
+        df = self.data
+
+        cols = set(df.columns)
+        # Only non-time properties
+        cols = cols.difference({time_coord})
+
+        def drift_col(x: pd.Series, col: pd.Series) -> Dict[str, float]:
+            fit = np.polyfit(x=x, y=col, deg=1)
+            y_start = np.polyval(fit, x.iloc[0])
+            y_end = np.polyval(fit, x.iloc[-1])
+
+            drift = y_start - y_end
+
+            return {"drift": drift, "frac_drift": drift / y_start}
+
+        drifts = pd.DataFrame.from_dict(
+            {col: drift_col(df[time_coord], df[col]) for col in cols},
+        )
+
+        # TODO: fit to all the columns and calculate the high and low values and the percentage drift.
+        return drifts
 
 
 if __name__ == "__main__":
