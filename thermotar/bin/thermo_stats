@@ -38,10 +38,11 @@ def main():
     print(thermos)
 
     for file, thermo_list in thermos.items():
+        print(f"File: {file}")
         for i, thermo in enumerate(thermo_list):
             print(f"Run {i}")
-            print(thermo.block_aves(n_blocks=10))
-            print(thermo.estimate_error(n_blocks=10))
+            print(thermo.block_aves(n_blocks=args.n_blocks))
+            print(thermo.estimate_error(n_blocks=args.n_blocks))
             print(thermo.estimate_drift())
 
 
