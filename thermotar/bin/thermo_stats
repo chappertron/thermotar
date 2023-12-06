@@ -14,8 +14,8 @@ def argument_parser(args: Optional[Sequence[str]] = None) -> Namespace:
     parser.add_argument("files", nargs="+", help="Files to be analysed", type=Path)
     parser.add_argument("--n_blocks", default=10, type=int)
     parser.add_argument("--last", default=False, action="store_true")
-    parser.add_argument("--drift", default=True, action="store_true")
-    parser.add_argument("--aves", default=True, action="store_true")
+    parser.add_argument("--no-drift", default=True, action="store_false")
+    parser.add_argument("--no-aves", default=True, action="store_false")
 
     parsed = parser.parse_args(args)
 
@@ -44,9 +44,9 @@ def main():
         for i, thermo in enumerate(thermo_list):
             print(f"Run {i}")
             # print(thermo.block_aves(n_blocks=args.n_blocks))
-            if args.aves:
+            if not args.no_aves:
                 print(thermo.estimate_error(n_blocks=args.n_blocks))
-            if args.drift:
+            if not args.no_drift:
                 drift_df = thermo.estimate_drift().transpose()
                 drift_df["percentage_drift"] = drift_df["frac_drift"] * 100
                 # TODO: Make this printing prettier
