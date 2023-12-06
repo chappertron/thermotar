@@ -14,8 +14,10 @@ def argument_parser(args: Optional[Sequence[str]] = None) -> Namespace:
     parser.add_argument("files", nargs="+", help="Files to be analysed", type=Path)
     parser.add_argument("--n_blocks", default=10, type=int)
     parser.add_argument("--last", default=False, action="store_true")
-    parser.add_argument("--no-drift", default=True, action="store_false")
-    parser.add_argument("--no-aves", default=True, action="store_false")
+    # TODO: All the negatives are quite confusing.
+
+    parser.add_argument("--no-drift", default=False, action="store_true")
+    parser.add_argument("--no-aves", default=False, action="store_true")
 
     parsed = parser.parse_args(args)
 
