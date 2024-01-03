@@ -7,7 +7,7 @@ from typing import Dict, Set
 from enum import Enum, auto
 from typing_extensions import Self
 
-import asyncio
+# import asyncio
 
 
 def parse_args(args=None):
@@ -53,7 +53,6 @@ async def main(args=None):
     args = parse_args(args=args)
 
     import thermotar as th
-    from thermotar.async_thermo import async_create_thermos
     import matplotlib.pyplot as plt
     import numpy as np
 
