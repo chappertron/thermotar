@@ -386,6 +386,10 @@ class Thermo:
         """
         Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
 
+        The percentage drift is relative to the starting fitted value.
+
+        If the fitting for the drift estimate fails, the parameters are set to np.nan
+
         """
 
         df = self.data
@@ -395,13 +399,16 @@ class Thermo:
         cols = cols.difference({time_coord})
 
         def drift_col(x: pd.Series, col: pd.Series) -> Dict[str, float]:
-            fit = np.polyfit(x=x, y=col, deg=1)
-            y_start = np.polyval(fit, x.iloc[0])
-            y_end = np.polyval(fit, x.iloc[-1])
+            try:
+                fit = np.polyfit(x=x, y=col, deg=1)
+                y_start = np.polyval(fit, x.iloc[0])
+                y_end = np.polyval(fit, x.iloc[-1])
+                drift = y_start - y_end
 
-            drift = y_start - y_end
+                return {"drift": drift, "frac_drift": drift / y_start}
+            except np.linalg.LinAlgError:
+                return {"drift": np.nan, "frac_drift": np.nan}
 
-            return {"drift": drift, "frac_drift": drift / y_start}
 
         drifts = pd.DataFrame.from_dict(
             {col: drift_col(df[time_coord], df[col]) for col in cols},
