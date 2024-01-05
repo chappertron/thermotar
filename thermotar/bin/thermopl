@@ -3,9 +3,13 @@
 
 import argparse
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Tuple
 from enum import Enum, auto
 from typing_extensions import Self
+import typing
+from numpy.linalg import LinAlgError
+import pandas as pd
+import numpy as np
 
 # import asyncio
 
@@ -15,7 +19,47 @@ def parse_args(args=None):
 
     parser.add_argument("log_files", nargs="+", type=Path)
     parser.add_argument("--units", default=Units.REAL, type=Units.from_str)
-    return parser.parse_args()
+    parser.add_argument(
+        "--drift-fit",
+        default=False,
+        action="store_true",
+        help="Fit drift to a line and plot it with the data.",
+    )
+    parser.add_argument(
+        "--plot-stats",
+        default=False,
+        action="store_true",
+        help="Plot the averaged statistics with the data. These are estimated using sub-windows.",
+    )
+    parser.add_argument(
+        "--last",
+        default=False,
+        action="store_true",
+        help="Use only the last run of the log file (usually production), rather than concattenating all.",
+    )
+
+    parser.add_argument(
+        "--rolling-width",
+        default=1,
+        type=int,
+        help="Use only the last run of the log file (usually production), rather than concattenating all.",
+    )
+    return parser.parse_args(args=args)
+
+
+def fit(x: pd.Series, y: pd.Series) -> Tuple[Tuple[float, float], pd.Series]:
+    """
+    Fit the data and return the fittings + the values of the fitted line.
+    """
+
+    try:
+        params = np.polyfit(x, y, 1)
+    except LinAlgError:
+        return (np.nan, np.nan), pd.Series(np.nan, index=x.index)
+
+    vals = np.polyval(params, x)
+
+    return (params[0], params[1]), pd.Series(vals)
 
 
 class Units(Enum):
@@ -58,18 +102,23 @@ async def main(args=None):
 
     thermos: Dict[Path, th.Thermo] = {}
 
-    properties_in_all: Set[str] = set()
-    all_properties: Set[str] = set()
+    properties_in_all = set()
+    all_properties = set()
 
     # TODO TRY `to_thread`
     for file in args.log_files:
         # Load all thermos in one list
-        thermo = th.create_thermos(file, last=False, join=True)
+        # TODO: Read the header only first. Read the rest of the file when plotting.
+        thermo = th.create_thermos(file, last=args.last, join=True)
         #     thermo = await th.thermo.async_parse_thermo(file)
         #     print(thermo)
+
+        # To let the type checker know that thermo is a Thermo object, not a list of thermos.
+        thermo = typing.cast(th.Thermo, thermo)
+
         properties = thermo.data.columns
 
-        print(file, properties)
+        # print(file, properties)
         # plt.plot(thermo.data[properties[0]], thermo.data[properties[2]])
 
         thermos[file] = thermo
@@ -83,6 +132,7 @@ async def main(args=None):
             properties_in_all = all_properties
         else:
             properties_in_all = properties_in_all.intersection(properties)
+
     # Sending to other threads so non-blocking
     # With 'async': thermopl rep_*/logfile.log  5.18s user 2.61s system 6% cpu 1:52.55 total
     # Joblib default params: thermopl rep_*/logfile.log  4.54s user 1.60s system 9% cpu 1:06.99 total
@@ -103,7 +153,6 @@ async def main(args=None):
 
     properties_in_all = sorted(list(properties_in_all))
     properties_in_some = sorted(list(properties_in_some))
-    
 
     print("Properties in All Files")
     for i, prop in enumerate(properties_in_all):
@@ -121,15 +170,52 @@ async def main(args=None):
     properties = list(properties_in_all) + list(properties_in_some)
     properties_to_plot = [properties[i] for i in property_indicies]
 
-    _fig, axes = plt.subplots(len(properties_to_plot), sharex=True)
+    _, axes = plt.subplots(len(properties_to_plot), sharex=True)
 
     if not isinstance(axes, np.ndarray):
         axes = [axes]
 
-    for file, thermo in thermos.items():
+    for i_file, (file, thermo) in enumerate(thermos.items()):
+
+        if args.rolling_width > 1: 
+            thermo.data = typing.cast(pd.DataFrame,thermo.data.rolling(args.rolling_width).mean()).dropna(how="all")
+
+        print(thermo.data)
+
         for i, prop in enumerate(properties_to_plot):
-            axes[i].plot(thermo.Step, thermo.data[prop], label=f"{file}")
+            # TODO: Add fallback if Step not in data
+            colour = f"C{i_file}"  # To enusrte same color for a given file
+            axes[i].plot(
+                thermo.data["Step"], thermo.data[prop], label=f"{file}", color=colour
+            )
             axes[i].set(ylabel=prop)
+            if args.drift_fit:
+                fit_params, fit_vals = fit(
+                    typing.cast(pd.Series, thermo.data["Step"]),
+                    typing.cast(pd.Series, thermo.data[prop]),
+                )
+                # TODO: Plot drift as a percentage of the average value, rather than the start value?
+                percent_drift = (fit_vals.iloc[-1]-fit_vals.loc[0])/((fit_vals.loc[0]))*100
+                # axes[i].plot(thermo.data['Step'],fit_vals,label=f"{file} fit. %drift: {(fit_vals.iloc[-1]-fit_vals.iloc[0])/fit_vals.iloc[0]*100:.3f}",color=colour)
+                axes[i].plot(
+                    thermo.data["Step"],
+                    fit_vals,
+                    label=f"{file} fit. %drift: {percent_drift:.3f}",
+                    color=colour,
+                )
+            if args.plot_stats:
+                stats = thermo.estimate_error().T[prop]
+                prop_ave = stats["ave"]
+                prop_err = stats["sem"]
+                axes[i].axhline(
+                    prop_ave,
+                    color=colour,
+                    linestyle="--",
+                    label=f"{file} ave: {prop_ave:.3f} +/- {prop_err:.3f}",
+                )
+                axes[i].axhspan(
+                    prop_ave - prop_err, prop_ave + prop_err, color=colour, alpha=0.4
+                )
     axes[-1].set(xlabel="Step")
     axes[-1].legend()
     plt.show()
