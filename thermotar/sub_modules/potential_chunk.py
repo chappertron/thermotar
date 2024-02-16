@@ -38,7 +38,7 @@ class Potential(th.Chunk):
                 Currently only applied to the total potential
         """
 
-        from scipy.constants import epsilon_0, elementary_charge
+        from scipy.constants import epsilon_0
 
         epsilon_0_AA = epsilon_0 * 1e-10  # convert F m^-1 -> F AA^-1
 

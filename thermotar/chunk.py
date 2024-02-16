@@ -169,7 +169,7 @@ class Chunk:
             # calculate the union of the list of coord_cols and the df columns
             coords = self.coord_cols
 
-        elif type(coord) == int:
+        elif isinstance(coord, int):
             coords = [self.coord_cols[coord]]
         else:
             # if neither a number or 'all', assumes a column name
@@ -209,7 +209,7 @@ class Chunk:
         """
 
         # centre first
-        if type(coord) == int:
+        if isinstance(coord, int):
             coord = self.coord_cols[coord]
         if not self.centred:
             self.centre()
@@ -239,7 +239,7 @@ class Chunk:
             # calculate the union of the list of coord_cols and the df columns
             coords = self.coord_cols
 
-        elif type(coord) == int:
+        elif isinstance(coord, int):
             coords = [self.coord_cols[coord]]
         else:
             # if neither a number or 'all', assumes a column name

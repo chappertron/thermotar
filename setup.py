@@ -15,7 +15,14 @@ setup(
         "thermotar/bin/thermo_stats",
     ],
     url="",
-    description="An awesome package that does something",
+    description="A package for analysing the output of simulations.",
     long_description=open("README.md").read(),
-    install_requires=["pandas", "numpy", "matplotlib"],
+    # parquet is added to install pyarrow, so no warning about future.
+    install_requires=[
+        "pandas[performance,parquet]",
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "typing-extensions",
+    ],
 )

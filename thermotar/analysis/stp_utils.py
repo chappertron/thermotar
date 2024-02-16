@@ -1,3 +1,4 @@
+from typing import Optional
 import pandas as pd
 import numpy as np
 
@@ -40,13 +41,12 @@ def quad_w_min(x, x0, y0, G):
 def alternate_fit(
     y: pd.Series,
     x: pd.Series,
-    sigma: pd.Series = None,
+    sigma: Optional[pd.Series] = None,
     xl=None,
     xh=None,
     constrain_curvature: bool = True,
     constrain_min: bool = False,
     func=quad_w_min,
-    **kwargs,
 ):
     """
     Like ranged polyfit, but now fits to a quadratic function with the minimum location explicitly a parameter
@@ -164,7 +164,7 @@ def get_poly_min(fit, xh=None, xl=None):
     # y = np.polyval(fit
     # y_min = np.min(y)
 
-    x_min = np.asscalar(
+    x_min = np.ndarray.item(
         crit_points_real[y_crits == y_min]
     )  # go back to finding which on is the minimum
 
@@ -196,7 +196,7 @@ def choose_temp_range(df, ptp=200, pot_name="phi_tot", temp_name="temp"):
         T, pot
     )  # find the temperature corresponding to the absoulte lowest value of the potential
 
-    T_min = np.asscalar(T_min)
+    T_min = np.ndarray.item(T_min)
 
     Tl = (
         T_min - ptp / 2
@@ -271,6 +271,10 @@ def find_min(
             fit = np.repeat(np.nan, 3)
             pcov = np.diag(np.repeat(np.nan, 3))  ### identity with nan on diagonals
             # RuntimeError Occurs if there is no
+        except Exception as e:
+            # Raise other exceptions.
+            raise e
+
         x_min = fit[0]
         y_min = fit[1]
 
@@ -324,7 +328,7 @@ def find_phi_min(
         )
         if verbose:
             print(f"temp_range around min {temp_range}, between {Tl=},{Th=}")
-    elif temp_range is not None:
+    elif (temp_centre is not None) and (temp_range is not None):
         if verbose:
             print(f"temp_range {temp_range} around temp_centre {temp_centre}")
         Tl, Th = (temp_centre - temp_range / 2, temp_centre + temp_range / 2)
@@ -546,7 +550,8 @@ def profile_calculating(
             chunk_trimmed.parity("cos_theta")
             chunk_trimmed.parity("P_z")
 
-        except:
+        # Ok not to flip if it doesn't exist
+        except IndexError:
             pass
 
     chunk_folded = Potential(chunk_trimmed.fold_and_ave())
