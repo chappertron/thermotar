@@ -1,20 +1,8 @@
 ### performance testing
-
-import cProfile
-import pstats
-
 import thermotar as th
 
 
-def parse_perf_test():
-    THERMO = th.Thermo.create_thermos("test_files/hexane15.log")
+def test_index():
+    thermo = th.create_thermos("./tests/test_files/log.lammps")
 
-    return THERMO
-
-
-if __name__ == "__main__":
-    with cProfile.Profile() as pr:
-        parse_perf_test()
-
-    stats = pstats.Stats(pr)
-    stats.dump_stats("./logs/perf.prof")
+    assert (thermo['Temp'] == thermo.data['Temp']).all()

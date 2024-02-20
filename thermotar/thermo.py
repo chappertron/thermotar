@@ -417,6 +417,25 @@ class Thermo:
         # TODO: fit to all the columns and calculate the high and low values and the percentage drift.
         return drifts
 
+    def stats(self, n_blocks: Optional[int] = None) -> pd.DataFrame:
+        """
+        Compute summary statisitics of the simulation. Optionally compute block into bins first.
+        """
+
+        if n_blocks is not None:
+            df = self.block_aves(n_blocks=n_blocks)
+        else:
+            df = self.data
+
+        return df.describe()
+
+
+    # Dunder methods.
+    def __repr__(self) -> str:
+        return f"Thermo({self.data})"
+
+    def __getitem__(self, key:str):
+        return self.data[key]
 
 if __name__ == "__main__":
     print(Thermo.split_thermo("my.log"))
