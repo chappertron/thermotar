@@ -6,19 +6,17 @@ This is very alpha software. Well whatever comes before alpha really.
 
 ## Installation:
   Quick install:
-  Run from the root directory of the project:
+  Clone the repositoryh and run from the root directory of the project:
   ```sh
   pip install .
   ```
 
-  Currently no pip or conda distribution.
-  
-  <!-- Easiest way to install is to run setup.py in thermotar. -->
-  
-  Specify the develop option when doing so, so that changes you make are reflected in the installation.
-  
-  
-  
+  Alternatively build without explicitly cloning first:
+  ```sh
+  pip install git+https://github.com/chappertron/thermotar
+  ```
+
+  Currently no pip or conda distribution. 
   
   
 ## Basic usage
