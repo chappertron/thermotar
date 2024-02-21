@@ -29,9 +29,15 @@ To read a lammps log file:
   # By default reads the last runs output
   thermo = th.create_thermos('log.lammps')
 
+  import matplotlib.pyplot as plt
+  plt.plot(thermo.Step,thermo.Temp)
+  plt.show()
+
   # Read data from chunk ave or RDF
   # Reads only the last table
   chunk = th.create_chunk('chunk.prof')
+  plt.plot(chunk.Coord1,chunk.temp)
+  plt.show()
 
   # Read all the chunks from a chunk/ave file
   chunks = th.create_multi_chunks('chunk.prof')
