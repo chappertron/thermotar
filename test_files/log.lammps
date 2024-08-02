@@ -56,7 +56,7 @@ pair_coeff 1 2 $(67.14*v_kb_eV) 3.85
 pair_coeff 1 2 0.0057856753619999999605 3.85
 pair_coeff 2 2 $(46*v_kb_eV) 3.95
 pair_coeff 2 2 0.0039639717999999995665 3.95
-bond_coeff 1 $(265265.6*v_kJ_mol_to_eV/100) 1.5220  #K includes 1/2 factor. Division by 100 converts from nm^-2 to \AA^-2 Coefficent from GROMACS implementation of the OPLS-AA FF.
+bond_coeff 1 $(265265.6*v_kJ_mol_to_eV/100) 1.5220  #K includes 1/2 factor. Division by 100 converts from nm^-2 to \AA^-2 Coefficient from GROMACS implementation of the OPLS-AA FF.
 bond_coeff 1 27.49212678399999632 1.5220  
 angle_coeff 1 $(62500*v_kb_eV/2) 114 #K divided by 2 to be correct
 angle_coeff 1 2.692915624999999924 114 
