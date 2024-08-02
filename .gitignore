@@ -152,3 +152,6 @@ dmypy.json
 cython_debug/
 thermotar/tests/logs/perf.prof
 thermotar.egg-info/SOURCES.txt
+
+# Mac stuff
+.DS_Store
