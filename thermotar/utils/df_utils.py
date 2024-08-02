@@ -66,7 +66,7 @@ def merge_no_dupes(*dfs):
     these dfs are then concated and the index reset."""
 
     duped_cols = find_dupes(*dfs)
-    # only attempts to asign index if duped cols found
+    # only attempts to assign index if duped cols found
     if len(duped_cols) > 0:
         [df.set_index(duped_cols, inplace=True) for df in dfs]
 
@@ -76,7 +76,7 @@ def merge_no_dupes(*dfs):
 def comment_header(file, line_no=0, comments="#", delim=" "):
     """
 
-    TODO: Address perfomance issues!!!! Compare peformance to simply calling read.csv but ignoring the # somehow
+    TODO: Address performance issues!!!! Compare performance to simply calling read.csv but ignoring the # somehow
     TODO: Maybe for i,line in enumerate(readlines) , if line == line_no is better
 
     Grab a header at specified line that has a specified comment in front and split based on delim. assumes line is in the first few so first chunk is loaded and lines read
@@ -89,7 +89,7 @@ def comment_header(file, line_no=0, comments="#", delim=" "):
                 Default : 0
 
         delim : str
-                Seperator for the headers
+                Separator for the headers
                 Default : ' '
         comments : str
                 Comment markers
@@ -285,7 +285,7 @@ def rebin_2D(
         )  # double divide is floor division
         bins2 = pd.cut(df[coord2], n_bins2)
     elif nbins is not None:
-        # TODO: Allow for same number of bins in both dimensions without explictly needing this defined
+        # TODO: Allow for same number of bins in both dimensions without explicitly needing this defined
         n_bins1, n_bins2 = nbins
         bins1 = pd.cut(df[coord1], n_bins1)
         bins2 = pd.cut(df[coord2], n_bins2)

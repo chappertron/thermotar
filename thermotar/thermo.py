@@ -1,6 +1,6 @@
 """
-    Defines a thermo class
-    Thermo Data is extracted from log files
+Defines a thermo class
+Thermo Data is extracted from log files
 """
 
 from pathlib import Path
@@ -100,7 +100,7 @@ class Thermo:
             this is taken to be the radius of the device
             Default - None
         style - str:
-            Can be linear or radial atm - the geometry of the syste,
+            Can be linear or radial atm - the geometry of the system,
             default: linear
         axis - str
                 Name of axis along which heat flux is applied
@@ -221,7 +221,7 @@ class Thermo:
         """
         # todo perhaps change to output thermo objects???
         # todo add automatic skipping of lines with the wrong number of rows
-        # todo if no 'Per MPI rank' found treat as if the file is a tab seperated file
+        # todo if no 'Per MPI rank' found treat as if the file is a tab separated file
 
         thermo_datas = []
 
@@ -359,7 +359,7 @@ class Thermo:
         self, group_col="Step", n_blocks=5, error_calc="sem"
     ) -> pd.DataFrame:
         """
-        Block averaging estimates for the errror of the mean and error in the data.
+        Block averaging estimates for the error of the mean and error in the data.
 
         Args:
             group_col: Column to group the data by. Typically "Step" or "Time"
@@ -408,7 +408,6 @@ class Thermo:
                 return {"drift": drift, "frac_drift": drift / y_start}
             except np.linalg.LinAlgError:
                 return {"drift": np.nan, "frac_drift": np.nan}
-
 
         drifts = pd.DataFrame.from_dict(
             {col: drift_col(df[time_coord], df[col]) for col in cols},

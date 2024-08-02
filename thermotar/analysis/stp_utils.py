@@ -12,7 +12,7 @@ from scipy import interpolate, optimize
 from thermotar.sub_modules.potential_chunk import Potential
 
 
-# fit within specified range to specified orer polynomial
+# fit within specified range to specified order polynomial
 def ranged_poly_fit(y, x, n=3, xl=None, xh=None, **kwargs):
     """
     In the range of data, in x, fit to a polynomial of the given order.
@@ -194,7 +194,7 @@ def choose_temp_range(df, ptp=200, pot_name="phi_tot", temp_name="temp"):
 
     T_min, _pot_min = basic_min(
         T, pot
-    )  # find the temperature corresponding to the absoulte lowest value of the potential
+    )  # find the temperature corresponding to the absolute lowest value of the potential
 
     T_min = np.ndarray.item(T_min)
 

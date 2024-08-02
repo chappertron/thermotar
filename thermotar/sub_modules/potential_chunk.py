@@ -31,7 +31,7 @@ class Potential(th.Chunk):
 
         TODO: Correct the field contributions or calculate from potential.
 
-        coords -> tuple of strings or string of names of coordinate coloums to intgrate against, assumes angstrom
+        coords -> tuple of strings or string of names of coordinate columns to intgrate against, assumes angstrom
 
         pot_coor : bool
                 Assume net charge neutral and thus that potential is zero at both box ends, and remove excess charge
@@ -44,7 +44,7 @@ class Potential(th.Chunk):
 
         # all P, Q and rho are provided in units of C per Angstrom^-n, where n depends on which multipole moment
 
-        # add the appropiate column names
+        # add the appropriate column names
 
         field_P_names = ["E_" + P for P in Ps]
         pot_P_names = ["phi_" + P for P in Ps]
@@ -82,7 +82,7 @@ class Potential(th.Chunk):
 
         # E_pol =
 
-        # all integrations specifiy initial = 0 to ensure the results are the same length
+        # all integrations specify initial = 0 to ensure the results are the same length
 
         # double integral of charge density
         sub_df["E_tot"] = (

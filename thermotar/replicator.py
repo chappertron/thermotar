@@ -13,7 +13,7 @@ class Replicator:
         self.index_names = index_names
 
         self.replicas = {index: item for index, item in zip(indexes, objects)}
-        # assume homogenous
+        # assume homogeneous
         try:
             # to do add some sort of index naming
             df = pd.concat(

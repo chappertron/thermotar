@@ -1,15 +1,16 @@
 import aiofiles
-from .thermo import Thermo 
+from .thermo import Thermo
 import warnings
 from typing import Union, List
 from io import StringIO
 import pandas as pd
 
+
 async def async_parse_thermo(
     logfile,
 ):
     """
-    Asynchronously parses the given LAMMPS log file and outputs a list of strings 
+    Asynchronously parses the given LAMMPS log file and outputs a list of strings
     that contain each thermo time series.
     """
     thermo_datas = []

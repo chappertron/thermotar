@@ -12,7 +12,7 @@ class LMPChunksParser:
         "column_names",
         "data",
         "info_rows_dicts",
-        "info_row_indicies",
+        "info_row_indices",
         "t_steps",
         "n_chunks",
         "total_counts",
@@ -28,7 +28,7 @@ class LMPChunksParser:
         self.column_names: list = self.set_columns()
         self.data: pd.DataFrame = pd.DataFrame()
         self.info_rows_dicts: OrderedDict = OrderedDict()
-        self.info_row_indicies = []  # containing the info found from
+        self.info_row_indices = []  # containing the info found from
         self.t_steps = []
         self.n_chunks = []
         self.total_counts = []
@@ -43,7 +43,7 @@ class LMPChunksParser:
         Creates a dictionary of row indicies and parsed lines
 
         """
-        if len(self.info_row_indicies) != 0 and not rerun:
+        if len(self.info_row_indices) != 0 and not rerun:
             raise ValueError("Already found indicies, to rerun pass the rerun option")
         start_index = self.header_line + 1
         next_info_row = start_index
@@ -66,7 +66,7 @@ class LMPChunksParser:
                     self.update_chunk_locs(i, parsed_line)
 
     def update_chunk_locs(self, i: int, parsed_line: tuple):
-        self.info_row_indicies.append(i)
+        self.info_row_indices.append(i)
         self.t_steps.append(parsed_line[0])
         self.n_chunks.append(parsed_line[1])
         self.total_counts.append(parsed_line[2])
@@ -85,7 +85,7 @@ class LMPChunksParser:
                 "Only the auto method is currently implemented for finding the chunks"
             )
 
-        if chunk_len == "auto" and len(self.info_row_indicies) == 0:
+        if chunk_len == "auto" and len(self.info_row_indices) == 0:
             raise ValueError("For chunk_len='auto', run get_info_rows method first!")
 
         use_single_size = False
@@ -114,9 +114,9 @@ class LMPChunksParser:
         **read_csv_kwargs : keyword arguments passed to pd.read_csv. Note cannot add sep, chunksize, skiprows, names, comment kwargs, these are already in use.
 
         """
-        if len(self.info_row_indicies) > 0:
+        if len(self.info_row_indices) > 0:
             # if these rows have been found, they can be skipped.
-            skiprows = self.info_row_indicies
+            skiprows = self.info_row_indices
         else:
             raise NotImplementedError("Not yet added lazy way to skip header rows")
             ### to keep things lazy, just make chunks chunksize+1, then remove the header rows from the top of each chunk
@@ -151,7 +151,7 @@ class LMPChunksParser:
 
         # pass through the file a second time to create the dict of arrays.
         # line_nos = list(info_rows_dicts.keys())
-        if len(self.info_row_indicies) == 0:
+        if len(self.info_row_indices) == 0:
             raise ValueError("Run get_info_rows method first!")
         values = {}
         for line_no, info in self.info_rows_dicts.items():
@@ -169,7 +169,7 @@ class LMPChunksParser:
 
         # pass through the file a second time to create the dict of arrays.
         # line_nos = list(info_rows_dicts.keys())
-        if len(self.info_row_indicies) == 0:
+        if len(self.info_row_indices) == 0:
             raise ValueError("Run get_info_rows method first!")
         values = {}
         for i, (line_no, info) in enumerate(self.info_rows_dicts.items()):
@@ -208,11 +208,11 @@ def parse_lmp_chunks(chunk_file, header_rows=3, verbose=False, **read_csv_kwargs
 
     """
     
-    Parser for the types of files outputed by compute ave/correlate and compute chunk commands
+    Parser for the types of files outputted by compute ave/correlate and compute chunk commands
     
     these typically have a file format where there are many tables in sets of timeseries
 
-    For convinence this parsing gives the output as pandas objects, with indexes as the 
+    For convenience this parsing gives the output as pandas objects, with indexes as the 
 
     The typical format of a lammps 'chunk' dump is:
 
@@ -244,7 +244,7 @@ def parse_lmp_chunks(chunk_file, header_rows=3, verbose=False, **read_csv_kwargs
     #     header_line = header_rows - 1
     # header = df_utils.comment_header(fname,line_no=header_line)
 
-    # #find N automactically
+    # #find N automatically
     # if nchunks =='auto':
     #     # TODO implement automatically finding this!
     #     # read the NHeader+1 th lines indexing starts at zero tho

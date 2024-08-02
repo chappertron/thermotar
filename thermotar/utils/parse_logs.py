@@ -6,7 +6,7 @@ import pandas as pd
 from collections import defaultdict
 
 """ TODO fix match units(xvg), raising errors if there are 
-less units than unitless coulmns (such as in the case of energy.xvg with 
+less units than unitless columns (such as in the case of energy.xvg with 
 multiple energies)"""
 
 
@@ -51,7 +51,7 @@ def get_lmp_properties(file, verbose=False):
     return properties
 
 
-# making more general (picking out headers and legends seperately)
+# making more general (picking out headers and legends separately)
 def _parse_xvg(file, return_units=True, match_units=False):
     """
     Parse GROMACS .xvg output files and generate a numpy array, a dictionary of x/y labels and units and legends and units

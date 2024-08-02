@@ -164,11 +164,11 @@ async def main(args=None):
         print(f"{i}: {prop}")
 
     # Handle user input
-    property_indicies = input()
-    property_indicies = [int(i) for i in property_indicies.split()]
+    property_indices = input()
+    property_indices = [int(i) for i in property_indices.split()]
 
     properties = list(properties_in_all) + list(properties_in_some)
-    properties_to_plot = [properties[i] for i in property_indicies]
+    properties_to_plot = [properties[i] for i in property_indices]
 
     _, axes = plt.subplots(len(properties_to_plot), sharex=True)
 
@@ -176,9 +176,10 @@ async def main(args=None):
         axes = [axes]
 
     for i_file, (file, thermo) in enumerate(thermos.items()):
-
-        if args.rolling_width > 1: 
-            thermo.data = typing.cast(pd.DataFrame,thermo.data.rolling(args.rolling_width).mean()).dropna(how="all")
+        if args.rolling_width > 1:
+            thermo.data = typing.cast(
+                pd.DataFrame, thermo.data.rolling(args.rolling_width).mean()
+            ).dropna(how="all")
 
         print(thermo.data)
 
@@ -195,7 +196,9 @@ async def main(args=None):
                     typing.cast(pd.Series, thermo.data[prop]),
                 )
                 # TODO: Plot drift as a percentage of the average value, rather than the start value?
-                percent_drift = (fit_vals.iloc[-1]-fit_vals.loc[0])/((fit_vals.loc[0]))*100
+                percent_drift = (
+                    (fit_vals.iloc[-1] - fit_vals.loc[0]) / (fit_vals.loc[0]) * 100
+                )
                 # axes[i].plot(thermo.data['Step'],fit_vals,label=f"{file} fit. %drift: {(fit_vals.iloc[-1]-fit_vals.iloc[0])/fit_vals.iloc[0]*100:.3f}",color=colour)
                 axes[i].plot(
                     thermo.data["Step"],

@@ -1,7 +1,6 @@
-""" Defines a thermo class
-    Thermo Data is extracted from log files
+"""Defines a thermo class
+Thermo Data is extracted from log files
 """
-
 
 import numpy as np
 import pandas as pd
@@ -64,7 +63,7 @@ class Chunk:
         TODO: Implement auto choosing the style, either with file extensions or some form of parsing
         """
 
-        # class method used so inhereted classes can also use this method
+        # class method used so inherited classes can also use this method
         # if style == 'auto':
         #     try:
         #         with open(fname,'r') as stream:
@@ -82,7 +81,7 @@ class Chunk:
                     "Only the last chunk is supported at the moment."
                 )
         elif style == "np":
-            # read the data frame from a space seperated file outputted by np.savetxt.
+            # read the data frame from a space separated file outputted by np.savetxt.
             df = parse_chunks.parse_numpy_file(fname, header_row=0, comment="#")
         else:
             raise NotImplementedError(
@@ -93,7 +92,7 @@ class Chunk:
 
     @classmethod
     def create_empty(cls, df, size=None):
-        """Create an empty chunk/inherited so that the missing data can be handeled more effectively."""
+        """Create an empty chunk/inherited so that the missing data can be handled more effectively."""
         return cls(df, CLEANUP=False)
         # raise NotImplementedError('TODO: implement this')
         # pass
@@ -277,15 +276,15 @@ class Chunk:
             self.data[coord_name] = np.absolute(self.data[coord_name])
         else:
             # folding about some other value
-            self.data[
-                coord_name
-            ] -= crease  # set origin to the value to be creased about
+            self.data[coord_name] -= (
+                crease  # set origin to the value to be creased about
+            )
             self.data[coord_name] = np.absolute(
                 self.data[coord_name]
             )  # get absolute value
-            self.data[
-                coord_name
-            ] += crease  # add the crease value back so still starts at this value!
+            self.data[coord_name] += (
+                crease  # add the crease value back so still starts at this value!
+            )
 
         # TODO Implement fully, even when not centred!
 
@@ -311,7 +310,7 @@ class Chunk:
         weights=None,
     ):
         """
-        TODO - impelement n_bins argument for 1d bins
+        TODO - implement n_bins argument for 1d bins
         Rebin the data based on coordinates for a given new bin width.
         Default is to perform averages over these bins.
         Could also add weightings for these averages
@@ -320,7 +319,7 @@ class Chunk:
 
         nbins = None, int, or array of ints. Number of bins for each binning dimension. Currently only supported for 2D bins
 
-        new_coord_loc = "mid" (default),"left" or "right" position of new coordinate, when set manulally rather than from average. Currently only for 2D bins
+        new_coord_loc = "mid" (default),"left" or "right" position of new coordinate, when set manually rather than from average. Currently only for 2D bins
 
         inplace : bool
             if True, overwrites the .data method, else just returns the data frame.

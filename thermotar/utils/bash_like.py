@@ -91,7 +91,7 @@ def _tail(file, N=20):
                 -1
             ].count(
                 b"\n"
-            )  # grab blocks found so far and chuck into a list #reverse tje order of the block too # number of lines total # covert the \n into binary before searching # does this check for broken lines?
+            )  # grab blocks found so far and chuck into a list #reverse the order of the block too # number of lines total # covert the \n into binary before searching # does this check for broken lines?
             lines_to_go -= lines_found
             block_end_byte -= BLOCK_SIZE
             block_number -= 1
@@ -138,7 +138,7 @@ def tail(file, N=20):
                 # read BUFFER
                 data.insert(0, f.read(BUFSIZ))
             else:
-                # file too small, start from begining
+                # file too small, start from beginning
                 f.seek(0, 0)
                 # only read what was not read
                 data.insert(0, f.read(curr_bytes))
@@ -176,7 +176,7 @@ if __name__ == "__main__":
 
     tail_out = tail(filename, N=N)
 
-    # checking the Nth line from the bottom with the naieve approach
+    # checking the Nth line from the bottom with the naive approach
 
     with open(filename) as stream:
         line_N = stream.readlines()[-N]
@@ -190,4 +190,4 @@ if __name__ == "__main__":
 
 
 # csplit command I managed to get work csplit -f prof3D_ ../profile3d.dat /^[0-9][0-9]*\ [0-9][0-9]*\ [0-9][0-9]*$/ '{*}'
-# execept for 3d cuz has an e+ in csplit -f prof3D_ ../profile3d.dat /^[0-9][0-9]*\ [0-9][0-9]*\ [0-9][0-9e.+]*$/ '{*}'
+# except for 3d cuz has an e+ in csplit -f prof3D_ ../profile3d.dat /^[0-9][0-9]*\ [0-9][0-9]*\ [0-9][0-9e.+]*$/ '{*}'

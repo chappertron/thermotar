@@ -38,7 +38,7 @@ class PairIntersectFinders:
         x_b = df_b[x_prop].loc[index_cross]
 
         if ~np.isclose(x_a, x_b):
-            raise ValueError("Coordiates of bins different!")
+            raise ValueError("Coordinates of bins different!")
 
         return x_a
 
@@ -161,7 +161,7 @@ def bounds_from_intersects(
 ):
     """
     Find the limits either side of each dataframe.
-    TODO: Check that the functions that calll this have the right signature
+    TODO: Check that the functions that call this have the right signature
     """
     # N = len(dfs)
     # if N != len(intersects) + 1:

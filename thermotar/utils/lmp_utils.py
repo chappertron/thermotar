@@ -21,7 +21,7 @@ def strip_pref(col_name):
 
 def drop_python_bad(col_name):
     """
-    Remove characters from the column names (input string) that don't work in python varialbe names
+    Remove characters from the column names (input string) that don't work in python variable names
     """
 
     # applied when read in
