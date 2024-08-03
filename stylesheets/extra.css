@@ -1,0 +1,19 @@
+[data-md-color-scheme="slate"] {
+  /* --md-hue: 210;  */
+  /* --md-primary-fg-color:        #C41E3A; */
+  /* --md-accent-fg-color:        #C41E3A; */
+  /* --md-typset-color:        #C41E3A; */
+  /* --md-text-link-color: #C41E3A; */
+  --md-primary-fg-color:               #C41E3A;
+  --md-primary-fg-color--light:        #C41E3A;
+  --md-primary-fg-color--dark:         #C41E3A;
+  /* --md-primary-bg-color:               #C41E3A; */
+  /* --md-primary-bg-color--light:        #C41E3A; */
+
+  --md-accent-fg-color:                #C41E3A;
+  /* --md-accent-fg-color--transparent:   #C41E3A; */
+  /* --md-accent-bg-color:                #C41E3A; */
+  /* --md-accent-bg-color--light:         #C41E3A; */
+  --md-typeset-a-color: #C41E3A;
+}
+
