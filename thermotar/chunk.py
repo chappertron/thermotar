@@ -1,7 +1,7 @@
-"""Defines a thermo class
-Thermo Data is extracted from log files
-"""
+"""Class for Reading output from LAMMPS chunk/ave command."""
 
+from os import PathLike
+from typing import Optional, List
 import numpy as np
 import pandas as pd
 
@@ -13,30 +13,44 @@ from .utils.df_utils import raise_col
 
 
 class Chunk:
+    """Class for Reading output from LAMMPS chunk/ave command."""
+
     def __init__(
         self,
-        thermo_df,
-        file2=None,
+        thermo_df: pd.DataFrame,
         CLEANUP=True,
         coord_cols=["Coord1", "Coord2", "Coord3", "coord", "Box"],
         centred=False,
         centered=None,
         **kwargs,
     ):
-        """thermo_file - string of log file location"""
+        """
+        Construct a `Chunk`  from a pandas Dataframe.
+
+        thermo_df:
+            Data frame to read values from.
+        CLEANUP:
+            If true, the headers of the DataFrame are tided up to become valid python
+            identifiers and strips the prefixes from compute/fix and variable columns.
+        centred:
+            Whether the coordinates of the system are already centred. This option
+            will be deprecated; the centring calculation is cheap.
+
+        """
         self.data: pd.DataFrame = thermo_df
 
         # clean up dataframe
 
         # apply strip_pref function to remove 'c_/f_/v_' prefixes to all columns
         if CLEANUP:
+            # TODO: the prefix stripping should not be done if there ends up being
+            # ambiguity between the fields; for example if c_foo and f_foo are both
+            # defined
             self.data.rename(columns=lmp_utils.strip_pref, inplace=True)
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
-            # todo merge columns into vectors
 
         # set the columns as attributes
         for col in self.data.columns:
-            # setattr(self, col ,getattr(self.data, col))
             # has to be set to a method of the class
             setattr(
                 self.__class__, col, raise_col(self, col)
@@ -52,18 +66,29 @@ class Chunk:
     # Property Definitions
 
     @property
-    def centered(self):
+    def centered(self) -> bool:
+        """Return whether the coordinates have already been centred."""
         return self.centred
 
     @classmethod
-    def create_chunk(cls, fname, style="lmp", last=True):
+    def create_chunk(cls, fname: str | PathLike, style: str = "lmp", last: bool = True):
         """
-        Load LAMMPS or numpy savetxt as a df and then create a Chunk instance, or instance of an inherited class
-        TODO: Implement .xvg styles
-        TODO: Implement auto choosing the style, either with file extensions or some form of parsing
-        """
+        Load LAMMPS or numpy savetxt as a df and then create a Chunk instance.
 
-        # class method used so inherited classes can also use this method
+        fname:
+            File to load.
+        style:
+            What is the format of the file.
+            Supported values are "lmp" and "np", for lammps chunkfiles and numpy
+            savetxt output, respectively.
+        last:
+            Only true is supported. Whether to read the last frame of the chunk file
+            or all of them. Use `MultiChunk` if all frames are needed.
+        """
+        # TODO: Implement .xvg styles
+        # TODO: Implement auto choosing the style, either with file extensions
+        # or some form of try and fail
+
         # if style == 'auto':
         #     try:
         #         with open(fname,'r') as stream:
@@ -90,27 +115,24 @@ class Chunk:
 
         return cls(df)
 
-    @classmethod
-    def create_empty(cls, df, size=None):
-        """Create an empty chunk/inherited so that the missing data can be handled more effectively."""
-        return cls(df, CLEANUP=False)
-        # raise NotImplementedError('TODO: implement this')
-        # pass
-
     def raise_columns(self):
-        """Raise columns from the df to be attributes
-        I have no clue how pandas does this automatically...
-        Maybe I need to make it so my objects can be indexed
-        and in doing that for assignment, the attributes can be raised up
-        TODO : Something with above??
-        """
+        """Raise columns from the df to be attributes."""
+        # I have no clue how pandas does this automatically...
+        # Maybe I need to make it so my objects can be indexed
+        # and in doing that for assignment, the attributes can be raised up
+        # TODO : Something with above??
         df_utils.raise_columns(self)
 
-    def prop_grad(self, prop, coord, **kwargs):
-        """
-        creates the gradient of prop w/ respect to coord. better than direct assignment because updates the columns
-        """
+    def prop_grad(self, prop: str, coord: str, **kwargs):
+        """Calculate the gradient of `prop` with respect to `coord`.
 
+        prop:
+            Which property the gradient of is calculated
+        coord:
+            Which property is used for the coordinate.
+        kwargs:
+            Keyword arguments to pass to `np.gradient`
+        """
         df = self.data
 
         df[prop + "_grad"] = np.gradient(df[prop], df[coord], **kwargs)
@@ -118,15 +140,15 @@ class Chunk:
         # updates the columns
         df_utils.raise_columns(self)
 
-    def nearest(self, property, value, each_half=True, coord=0):
-        """
-        Currently returns index
+    def nearest(self, property: str, value: float, coord=0):
+        """Return the index for which property is closest to `value`.
 
         To do, return the actual row of properties??????
 
         This way if nan - make a nan list
 
         """
+        # TODO: Find out where this method is used and understand what on earth it does
         coord = self.data[
             self.coord_cols[coord]
         ]  # select coordinate column for which to find nearsest in each side
@@ -154,16 +176,20 @@ class Chunk:
             row_copy.loc[:] = np.nan
             return row_copy
 
-    def centre(self, coord="all", moment=None):
+    def centre(
+        self, coord: int | str | List[str] = "all", moment: Optional[int] = None
+    ):
+        """Shift the origin of the simulation box to zero.
+
+        coord:
+            Index of coordinate column to centre , indexes self.coord_cols.
+            Default is 'all'.
+
+        moment:
+            If Not None, centres the system to this column name,
+            weighted by this column name raised to the power of moment.
+
         """
-        Shift the origin of the simulation box to match
-
-        coord: index of coordinate column to centre over, indexes self.coord_cols. default is all
-
-        moment: if Not None, centres the system to this column name, weighted by this column name
-
-        """
-
         if coord == "all":
             # calculate the union of the list of coord_cols and the df columns
             coords = self.coord_cols
@@ -188,14 +214,12 @@ class Chunk:
         return self
 
     def center(self, coord="all"):
-        """An alias of centre for yanks"""
+        """An alias of centre for yanks."""
         return self.centre(coord=coord)
 
     @staticmethod
     def centre_series(series: pd.Series):
-        """
-        Subtract the average of a series from the series.
-        """
+        """Subtract the average of a series from the series."""
         centre = (series.max() + series.min()) / 2
         centred = series - centre
         return centred
@@ -203,10 +227,11 @@ class Chunk:
     def parity(self, prop, coord=0):
         """
         Multiplies a property by the sign of the coordinate.
-        Should only be applied to properties that are pseudo scalars,  i.e. change sign under coordinate inversion, so that upon folding and averaging
+
+        Should only be applied to properties that are pseudo scalars,  i.e. change
+        sign under coordinate inversion, so that upon folding and averaging
         properties are correct.
         """
-
         # centre first
         if isinstance(coord, int):
             coord = self.coord_cols[coord]
@@ -219,7 +244,12 @@ class Chunk:
         )  # multiply by the sign of the coordinate column
         self.raise_columns()
 
-    def moment(self, coord, weighting, order=1, integrate="trapz"):
+    def moment(
+        self,
+        coord,
+        weighting,
+        order=1,
+    ):
         """Calculate the specified moment of the coordinate, weighted by a named property"""
         coords = self.data[self.choose_coordinate(coord)].T
 
@@ -228,12 +258,13 @@ class Chunk:
 
         return np.trapz(integrand, coords) / normaliser
 
-    def choose_coordinate(self, coord):
-        """if an integer, indexes the self.coord_cols field,
+    def choose_coordinate(self, coord: int | str):
+        """Find the provided coordinate column(s).
+
+        If an integer, indexes the self.coord_cols field,
         if string 'all', returns self.coord_cols
         if any other, returns
         """
-
         if coord == "all":
             # calculate the union of the list of coord_cols and the df columns
             coords = self.coord_cols
@@ -246,20 +277,23 @@ class Chunk:
 
         return coords
 
-    def fold(self, crease=0, coord=None, coord_i=0, sort=False, inplace=True):
+    def fold(self, crease=0.0, coord=None, coord_i: int = 0, sort=False, inplace=True):
         """
-        Fold the profile about z = 0
-        warning: if properties have been calculated prior to folding, they may no longer be correct.
+        Fold the profile about coord = crease.
 
-        For example, electric fields calculated by integrating charge profiles, will have a different sign in each part of the box.
+        WARNING: if properties have been calculated prior to folding, they may no
+        longer be correct.
+
+        For example, electric fields calculated by integrating charge profiles,
+        will have a different sign in each part of the box.
+
+        To deal with this they should be inverted based on the sign of the coordiante.
 
         crease: -
                 Position along folded coordinate to fold about
 
         coord_i : int -
                 The index of the self.coord_cols list. Default is 0, the first coord
-
-
         """
         if coord is None:
             coord_name = self.coord_cols[coord_i]
@@ -310,23 +344,31 @@ class Chunk:
         weights=None,
     ):
         """
-        TODO - implement n_bins argument for 1d bins
         Rebin the data based on coordinates for a given new bin width.
+
         Default is to perform averages over these bins.
         Could also add weightings for these averages
 
-        coord = Column name of the coordinate to create the bins from
+        coord:
+            Column name of the coordinate to create the bins from
 
-        nbins = None, int, or array of ints. Number of bins for each binning dimension. Currently only supported for 2D bins
+        nbins:
+            None, int, or array of ints. Number of bins for each binning dimension.
+            Currently only supported for 2D bins.
 
-        new_coord_loc = "mid" (default),"left" or "right" position of new coordinate, when set manually rather than from average. Currently only for 2D bins
+        new_coord_loc:
+            "mid" (default), "left" or "right" position of new coordinate,
+            when set manually rather than from average. Currently only for 2D bins
 
         inplace : bool
             if True, overwrites the .data method, else just returns the data frame.
 
-        weights = Column label for weights, only used if mode is "average" or "mean"
+        weights:
+            Column label for performing a weighted average,
+            only used if mode is "average" or "mean"
 
         """
+        # TODO: - implement n_bins argument for 1d bins
         df = self.data
 
         # Use multiple bins
@@ -368,15 +410,19 @@ class Chunk:
         # else:
         #     df_binned = df_grouped.sum()
 
+        # TODO:  Why is df_binned possibly unbound?
         if inplace:
             self.data = df_binned
         else:
             return df_binned
 
-    def fold_and_ave(self, crease=0, coord=None, coord_i=0, sort=True, bw="auto"):
-        """
-            Fold the profile about z = 0
-            warning: if properties have been calculated prior to folding, they may no longer be correct, epsecially properties that invert under coordinate inversion (pseudoscalars)
+    def fold_and_ave(
+        self, crease=0.0, coord=None, coord_i=0, sort=True, bw: str | float = "auto"
+    ):
+        """Fold the profile and average the two halves.
+
+            WARNING: if properties have been calculated prior to folding,
+            they may no longer be correct, epsecially properties that invert under coordinate inversion (pseudoscalars)
 
             For example, electric fields calculated by integrating charge profiles, will have a different sign in each part of the box.
 
@@ -387,10 +433,12 @@ class Chunk:
                     The index of the self.coord_cols list. Default is 0, the first coord
                     if all, will fold all coordinates, but will only crease
 
-        bw - need to re bin ! if auto - tries to work out the original bin spacing and then groups by this, if not auto, specify the bin width in distance
+        bw:
+            Averaging works by rebinning
+            If auto, tries to work out the original bin spacing and then groups by this
+            If not auto, specify the bin width in distance.
 
         """
-
         if coord is None:
             if coord_i == "all":
                 coord_names = self.coord_cols
@@ -399,7 +447,7 @@ class Chunk:
         else:
             coord_names = [coord]
 
-        if crease == 0 and not self.centred:
+        if crease == 0.0 and not self.centred:
             # if the crease is located at coord = 0, but not already centred then - centres
             self.centre(coord=coord_names)
 
