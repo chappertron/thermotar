@@ -1,7 +1,7 @@
 # thermotar
 For importing some LAMMPS and GROMACS files types, with a light bit of analysing too.
 
-This is very alpha software. Well whatever comes before alpha really.
+Docs are located at: chappertron.github.io/thermotar/
 
 
 ## Installation:
