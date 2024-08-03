@@ -27,12 +27,14 @@ class Chunk:
         """
         Construct a `Chunk`  from a pandas Dataframe.
 
-        thermo_df:
+        Parameters
+        ----------
+        thermo_df :
             Data frame to read values from.
-        CLEANUP:
+        CLEANUP :
             If true, the headers of the DataFrame are tided up to become valid python
             identifiers and strips the prefixes from compute/fix and variable columns.
-        centred:
+        centred :
             Whether the coordinates of the system are already centred. This option
             will be deprecated; the centring calculation is cheap.
 
@@ -75,6 +77,8 @@ class Chunk:
         """
         Load LAMMPS or numpy savetxt as a df and then create a Chunk instance.
 
+        Parameters
+        ----------
         fname:
             File to load.
         style:
@@ -126,6 +130,8 @@ class Chunk:
     def prop_grad(self, prop: str, coord: str, **kwargs):
         """Calculate the gradient of `prop` with respect to `coord`.
 
+        Parameters
+        ----------
         prop:
             Which property the gradient of is calculated
         coord:
@@ -181,6 +187,8 @@ class Chunk:
     ):
         """Shift the origin of the simulation box to zero.
 
+        Parameters
+        ----------
         coord:
             Index of coordinate column to centre , indexes self.coord_cols.
             Default is 'all'.
@@ -289,6 +297,8 @@ class Chunk:
 
         To deal with this they should be inverted based on the sign of the coordiante.
 
+        Parameters
+        ----------
         crease: -
                 Position along folded coordinate to fold about
 
@@ -349,6 +359,8 @@ class Chunk:
         Default is to perform averages over these bins.
         Could also add weightings for these averages
 
+        Parameters
+        ----------
         coord:
             Column name of the coordinate to create the bins from
 
@@ -426,12 +438,14 @@ class Chunk:
 
             For example, electric fields calculated by integrating charge profiles, will have a different sign in each part of the box.
 
-            crease: -
-                    Position along folded coordinate to fold about
+        Parameters
+        ----------
+        crease:
+                Position along folded coordinate to fold about
 
-            coord_i : int -
-                    The index of the self.coord_cols list. Default is 0, the first coord
-                    if all, will fold all coordinates, but will only crease
+        coord_i : int
+                The index of the self.coord_cols list. Default is 0, the first coord
+                if all, will fold all coordinates, but will only crease
 
         bw:
             Averaging works by rebinning
