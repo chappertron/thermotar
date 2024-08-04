@@ -1,0 +1,10 @@
+[lint]
+select = ["D"]
+exclude  = ["dump.py",]
+
+[lint.pydocstyle]
+convention = "numpy"
+
+
+
+
