@@ -19,9 +19,7 @@ from .utils import df_utils
 
 
 class Thermo:
-    """
-    Class for loading and operating on LAMMPS thermodynamic output
-    """
+    """Class for loading and operating on LAMMPS thermodynamic output."""
 
     def __init__(
         self,
@@ -31,15 +29,17 @@ class Thermo:
         properties: Optional[Dict[str, Any]] = None,
     ):
         """
-        Constructor for an object of the Thermo class.
+        Construct a Thermo instance from a pandas DataFrame.
 
-        Parameters:
-            thermo_df : Pandas DataFrame containing thermodynamic information.
-            cleanup : Option to remove c_ etc. prefixes from column names.
-            properties : dict of properties parsed from the log file.
+        Parameters
+        ----------
+        thermo_df :
+            Pandas DataFrame containing thermodynamic information.
+        cleanup :
+            Option to remove c_ etc. prefixes from column names.
+        properties :
+            dict of properties parsed from the log file.
             Used in create thermos or the get_props class method.
-        Returns:
-
         """
         self.data: pd.DataFrame = thermo_df
 
@@ -83,36 +83,39 @@ class Thermo:
         area: Optional[float] = None,
         style: str = "linear",
         axis: str = "z",
-        C_H_ratio: float = 1.0,
         method: str = "linear_fit",
         direction: int = 1,
         real_2_si: bool = True,
         tstep: Optional[float] = None,
     ) -> float:
-        """
-        thermostat_C  - str:
+        """Calculate the heatflux from the accumulated energy output.
+
+        The heatflux is calculated by linearly fitting to the `thermostat_C` and
+        `thermostat_H` columns. This assumes a steady state has been reached and the
+        heat flux is constant.
+
+        Parameters
+        ----------
+        thermostat_C  : str
             Column name of the cold thermostat energy removal
-        thermostat_H - str:
+        thermostat_H : str
             Column name of the hot thermostat compute
-        Area - None, float,array:
-            if None, work out cross sectional area from properties, if a float, assumes
-            constant area along the axis,
-            if an array, take values. If style is radial, and a float,
+        area : None | float | array
+            If None, work out cross sectional area from properties, if found.
+            If a float, assumes constant area along the axis,
+            If an array, take values. If style is radial, and a float,
             this is taken to be the radius of the device
             Default - None
-        style - str:
+        style - str
             Can be linear or radial atm - the geometry of the system,
             default: linear
         axis - str
-                Name of axis along which heat flux is applied
-                default 'z'
+            Name of axis along which heat flux is applied
+            default 'z'
 
-        C_H_ratio - float:
-            ratio between the volume of the cold to the volume of the hot thermostats,
-            to normalise heat flow. NOT CURRENTLY IMPLEMENTED
-
-        direction - hot to cold = 1,  cold to hot = -1 - matches
-                    the sign of the thermal gradient
+        direction : int
+            hot to cold = 1,  cold to hot = -1 - matches
+            the sign of the thermal gradient
 
         """
         # for spheriical, area needs to be a radius or an array
@@ -167,21 +170,21 @@ class Thermo:
     def create_thermos(
         cls, logfile, join=True, get_properties=True, last=True
     ) -> Union[List["Thermo"], "Thermo"]:
-        """
-        utilises parse_thermo to create thermo objects
+        """Read the output of a lammps simulation from a logfile.
 
-        `join`: bool -
+        Parameters
+        ----------
+        join : bool
             Decide whether to concatenate the thermo output of different run commands
             into one df or not
             If False a list of thermo objects is returned
             default: True
-        `last`: bool -
+        last : bool
             Just get the last set of data, usually production steps.
             `last` overrides `join`.
             default: True
 
         """
-
         # make load thermos as  IO objects
         strings_ios = Thermo.parse_thermo(logfile, f=StringIO)
         # load io strings as dataframes and return as thermo object
@@ -209,17 +212,25 @@ class Thermo:
             return Thermo(joined_df, properties=properties)
 
     @classmethod
-    def parse_thermo(cls, logfile, f=None):
-        """
-        Parses the given LAMMPS log file and outputs a list of strings that contain each
-        thermo time series.
-        # Change so outputs a list of thermo objects
-        Optional argument f is applied to list of strings before returning,
+    def parse_thermo(cls, logfile: str | os.PathLike, f=None) -> List[str]:
+        """Parse thermo data into strings.
+
+        This is primarily meant to e aan internal method.
+        Reads the given LAMMPS log file and outputs a list of strings that
+        contain each thermo time series.
+
+        An optional argument f is applied to list of strings before returning,
         for code reusability
 
-        TODO Make more efficient
+        Parameters
+        ----------
+        logfile:
+            Filename or path to read the logfile from.
+        f:
+            A function that is applied to all found thermos.
 
         """
+        # TODO: Make more efficient
         # todo perhaps change to output thermo objects???
         # todo add automatic skipping of lines with the wrong number of rows
         # todo if no 'Per MPI rank' found treat as if the file is a tab separated file
@@ -272,7 +283,7 @@ class Thermo:
             return thermo_datas
 
     @staticmethod
-    def split_thermo(
+    def _split_thermo(
         logfile, path="./split_thermos/", file_name_format="thermo_{}.csv", **kwargs
     ):
         # todo make class method???
@@ -292,25 +303,52 @@ class Thermo:
 
     @staticmethod
     def from_csv(csv_file: Path, **kwargs) -> "Thermo":
-        """
-        Creates a thermo object from a csv file
+        """Create a Thermo object from a csv file.
 
-        Parameters:
-            csv_file: path to csv file
-            kwargs: keyword arguments to pass to `pandas.read_csv`
+        Parameters
+        ----------
+        csv_file:
+            path to csv file
+        kwargs: keyword arguments to pass to `pandas.read_csv`
         """
         return Thermo(pd.read_csv(csv_file, **kwargs))
 
     @staticmethod
-    def get_properties(logfile):
-        """From a log file get properties defined in parse_logs.py in
-        lmp_properties_re"""
+    def get_properties(logfile: str | os.PathLike):
+        """Extract non timeseries 'properties' from the logfile.
 
+        Currently tries to extract the timestep, lattice size and box size.
+
+        Some of these can only be read if the logfile was written from stdout
+        of the lammps simulations rather than from the -log flag.
+
+        Parameters
+        ----------
+        logfile:
+            The name of the lammps logfile to read.
+
+
+        """
         properties_dict = parse_logs.get_lmp_properties(logfile)
 
         return properties_dict
 
-    def plot_property(self, therm_property, x_property=None, **kwargs):
+    def plot_property(
+        self, therm_property: str, x_property: Optional[str] = None, **kwargs
+    ):
+        """
+        Plot the provieded properties against eachother.
+
+        By default `therm_property` is plotted against the Step or Time, in that order.
+
+        Parameters
+        ----------
+        therm_property:
+            Which property is plotted on the y-axis
+        x_property:
+            Plot this on the x-axis. If not provided plots against the Step or Time.
+
+        """
         # todo allow plotting many properties at once
 
         the_data = self.data
@@ -333,6 +371,7 @@ class Thermo:
         )
 
     def reverse_cum_average(self, property):
+        """Calculate the cumulative average in larger and larger chunks."""
         prop = self.data[property]
 
         cum_ave = np.array([np.mean(prop[i:]) for i, point in enumerate(prop)])
@@ -404,9 +443,22 @@ class Thermo:
         group_col="Step",
         n_blocks=5,
     ) -> pd.DataFrame:
-        """
-        Divide the simulation into `n_blocks` and take the average of each block
-        Used for the calculation of error estimates.
+        """Divide the simulation into `n_blocks` and take the average of each block.
+
+        Used for the calculation of error estimates from a single simulation trajectory.
+
+        Parameters
+        ----------
+        group_col :
+            Which column to use for splitting the time series into bins.
+        n_blocks :
+            How many bins to use.
+
+        Returns
+        -------
+        Returns a dataframe with the block number as the index and the properties as
+        the columns.
+
         """
         bw = df_utils.n_blocks2bw(self.data[group_col], n_blocks)
 
@@ -418,11 +470,20 @@ class Thermo:
         """
         Block averaging estimates for the error of the mean and error in the data.
 
-        Args:
-            group_col: Column to group the data by. Typically "Step" or "Time"
-            n_blocks: Number of blocks to divide the thermo data into.
-            error_calc: Method of estimating the error. Either "sem" or "std". Default "sem"
-            error_label: Suffix appended to error columns, joined by a "_". Default: "err"
+        Parameters
+        ----------
+        group_col:
+            Column to group the data by. Typically "Step" or "Time"
+        n_blocks:
+            Number of blocks to divide the thermo data into.
+        error_calc:
+            Method of estimating the error. Either "sem" or "std". Default "sem"
+        error_label:
+            Suffix appended to error columns, joined by a "_". Default: "err"
+
+        Returns
+        -------
+        A DataFrame with a multi index with an average and error for each property.
 
         Changes in version 0.0.2:
             Error columns now have "_err" as suffix by default instead of the value of
@@ -445,15 +506,11 @@ class Thermo:
         return pd.DataFrame({"ave": ave_df, f"{error_label}": error_df})
 
     def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
-        """
-        Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
+        """Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
 
         The percentage drift is relative to the starting fitted value.
-
         If the fitting for the drift estimate fails, the parameters are set to np.nan
-
         """
-
         df = self.data
 
         cols = set(df.columns)
@@ -479,10 +536,7 @@ class Thermo:
         return drifts
 
     def stats(self, n_blocks: Optional[int] = None) -> pd.DataFrame:
-        """
-        Compute summary statisitics of the simulation. Optionally compute block into bins first.
-        """
-
+        """Compute summary statisitics of the simulation. Optionally compute block into bins first."""
         if n_blocks is not None:
             df = self.block_aves(n_blocks=n_blocks)
         else:
@@ -492,13 +546,15 @@ class Thermo:
 
     # Dunder methods.
     def __repr__(self) -> str:
+        """Pretty print."""
         return f"Thermo({self.data})"
 
     def __getitem__(self, key: str):
+        """Access the underlying dataframe columns."""
         return self.data[key]
 
 
 if __name__ == "__main__":
-    print(Thermo.split_thermo("my.log"))
+    print(Thermo._split_thermo("my.log"))
     test_thermo = Thermo(pd.read_csv("split_thermos/thermo_3.csv"))
     print(test_thermo.data)
