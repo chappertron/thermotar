@@ -23,6 +23,18 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
     # can use navigation_depth to allow more layers of docs to be shown in the sidebar
+  features:
+    - content.code.copy
+
+markdown_extensions:
+  # For code highlighting
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
 
 extra_css:
   - stylesheets/extra.css
