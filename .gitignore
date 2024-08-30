@@ -123,6 +123,7 @@ celerybeat.pid
 .venv
 env/
 venv/
+thermotar-venv/
 ENV/
 env.bak/
 venv.bak/
