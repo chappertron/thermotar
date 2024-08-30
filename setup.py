@@ -25,4 +25,5 @@ setup(
         "matplotlib",
         "typing-extensions",
     ],
+    extras_require={"dev": ["pytest"]},
 )
