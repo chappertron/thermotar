@@ -433,6 +433,9 @@ class Chunk:
 
         return df_ave
 
+    def __getitem__(self, key: str):
+        return self.data[key]
+
 
 if __name__ == "__main__":
     # testing the chunk creator
