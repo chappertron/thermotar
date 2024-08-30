@@ -12,7 +12,8 @@ import os
 from io import StringIO
 from typing import Any, Union, List, Optional, Dict
 
-# from .utils import lmp_utils
+import matplotlib.pyplot as plt
+
 from .utils import lmp_utils
 from .utils import df_utils
 
@@ -338,9 +339,65 @@ class Thermo:
 
         return pd.Series(cum_ave)
 
-    def compare_dist(self, property, bins=100, **kwargs):
-        self.data[property].plot.density(**kwargs)
-        self.data[property].plot.hist(**kwargs, density=True, bins=bins)
+    def compare_dist(self, property, bins=100, n_blocks=5, **kwargs):
+        """
+        Plot the data as a histogram as well as the estimated probability density function.
+        Also plot the gaussian that has the estimated mean and standard deviation.
+
+        [!note]
+            These do not correspond to good estimates. Sub averages should be plotted instead.
+            The standard deviation of the gaussian is not the standard error.
+
+        Parameters:
+            property: name of the property to plot
+            bins: number of bins to use for the histogram
+            n_blocks: number of blocks to use for the error estimate
+            kwargs: keyword arguments to pass to the plotting functions
+        """
+        # TODO: Use it or lose it:
+        # from scipy import stats
+
+        # Estimate error of the property
+        ave_err = self.estimate_error(n_blocks=n_blocks)
+        ave = float(ave_err["ave"].loc[property])
+        # TODO: Use it or lose it:
+        # err = float(ave_err["sem"].loc[property])
+
+        _, ax = plt.subplots(1)
+
+        self.data[property].plot.density(**kwargs, label="PDF", ax=ax)
+        self.data[property].plot.hist(
+            **kwargs, density=True, bins=bins, label="Histogram", ax=ax
+        )
+        ax.axvline(ave, color="k", linestyle="dashed", linewidth=1, label="Mean")
+        # x = np.linspace(ave - 3 * err , ave + 3 * err,500)
+        # ax.plot(x, stats.norm.pdf(x,ave,err), label="Gaussian")
+
+    def compare_dist_samples(self, property, n_samples=100, **kwargs):
+        """
+        Plot the data as a histogram as well as the estimated probability density function.
+        Also plot the gaussian that has the estimated mean and standard deviation.
+
+        Parameters:
+            property: name of the property to plot
+            n_samples: number of sub-averages used.
+            kwargs: keyword arguments to pass to the plotting functions
+        """
+        from scipy import stats
+
+        df = self.block_aves(n_blocks=n_samples)[property]
+
+        # Estimate error of the property
+        ave = df.mean()
+        err = df.std()
+
+        _, ax = plt.subplots(1)
+
+        df.plot.density(**kwargs, label="PDF", ax=ax)
+        df.plot.hist(**kwargs, density=True, bins=n_samples, label="Histogram", ax=ax)
+        ax.axvline(ave, color="k", linestyle="dashed", linewidth=1, label="Mean")
+        x = np.linspace(ave - 3 * err, ave + 3 * err, 500)
+        ax.plot(x, stats.norm.pdf(x, ave, err), label="Gaussian")
 
     def block_aves(
         self,
@@ -440,4 +497,3 @@ if __name__ == "__main__":
     print(Thermo.split_thermo("my.log"))
     test_thermo = Thermo(pd.read_csv("split_thermos/thermo_3.csv"))
     print(test_thermo.data)
-    print(test_thermo.plot_property("Temp"))
