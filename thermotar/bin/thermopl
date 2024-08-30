@@ -209,7 +209,7 @@ async def main(args=None):
             if args.plot_stats:
                 stats = thermo.estimate_error().T[prop]
                 prop_ave = stats["ave"]
-                prop_err = stats["sem"]
+                prop_err = stats["err"]
                 axes[i].axhline(
                     prop_ave,
                     color=colour,
