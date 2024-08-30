@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="thermotar",
-    version="0.0.1",
+    version="0.0.2-beta",
     author="Aidan C",
     packages=find_packages(),
     scripts=[
