@@ -413,7 +413,7 @@ class Thermo:
         return df_utils.rebin(self.data, binning_coord=group_col, bw=bw)
 
     def estimate_error(
-        self, group_col="Step", n_blocks=5, error_calc="sem"
+        self, group_col="Step", n_blocks=5, error_calc="sem", error_label="err"
     ) -> pd.DataFrame:
         """
         Block averaging estimates for the error of the mean and error in the data.
@@ -422,6 +422,11 @@ class Thermo:
             group_col: Column to group the data by. Typically "Step" or "Time"
             n_blocks: Number of blocks to divide the thermo data into.
             error_calc: Method of estimating the error. Either "sem" or "std". Default "sem"
+            error_label: Suffix appended to error columns, joined by a "_". Default: "err"
+
+        Changes in version 0.0.2:
+            Error columns now have "_err" as suffix by default instead of the value of
+            `error_calc`. It can be set with `error_label` to overcome this.
         """
         aves = self.block_aves(group_col=group_col, n_blocks=n_blocks)
 
@@ -437,7 +442,7 @@ class Thermo:
         # error_df = error_method()
 
         # TODO Change sem/std to err?
-        return pd.DataFrame({"ave": ave_df, f"{error_calc}": error_df})
+        return pd.DataFrame({"ave": ave_df, f"{error_label}": error_df})
 
     def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
         """
@@ -485,13 +490,13 @@ class Thermo:
 
         return df.describe()
 
-
     # Dunder methods.
     def __repr__(self) -> str:
         return f"Thermo({self.data})"
 
-    def __getitem__(self, key:str):
+    def __getitem__(self, key: str):
         return self.data[key]
+
 
 if __name__ == "__main__":
     print(Thermo.split_thermo("my.log"))
