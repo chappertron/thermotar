@@ -219,8 +219,9 @@ async def main(args=None):
                 axes[i].axhspan(
                     prop_ave - prop_err, prop_ave + prop_err, color=colour, alpha=0.4
                 )
+            axes[i].set_title(prop)
+            axes[i].legend()
     axes[-1].set(xlabel="Step")
-    axes[-1].legend()
     plt.show()
 
 
