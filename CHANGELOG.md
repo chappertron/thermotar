@@ -3,10 +3,14 @@
 
 ## Version 0.0.2
 
+### New Features
+
 - (BREAKING) Can now specify suffix to error columns in `thermo.estimate_error` independently of `error_calc`, defaulting to 'err'.
   Results in the default suffix changing to '_err'
+- `__getitem__` is now implemented for `Chunk`
 
-## Breaking
+
+### Breaking
 
 - Suffix to error columns in `thermo.estimate_error` is changed from '_sem' to '_err'.
 
