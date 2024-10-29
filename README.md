@@ -1,12 +1,12 @@
 # thermotar
-For importing some LAMMPS and GROMACS files types, with a light bit of analysing too.
+For importing LAMMPS log and chunk files, with a light bit of analysing too.
 
 Docs are located at: [chappertron.github.io/thermotar/](https://chappertron.github.io/thermotar/)
 
 
 ## Installation:
   Quick install:
-  Clone the repositoryh and run from the root directory of the project:
+  Clone the repository and run from the root directory of the project:
   ```sh
   pip install .
   ```
