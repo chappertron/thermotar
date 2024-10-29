@@ -16,6 +16,7 @@ Currently, there is no pip or conda distribution.
   
 
 
+### Examples
 ```python
   import thermotar as th
   # Read LAMMPS log file
@@ -38,3 +39,11 @@ Currently, there is no pip or conda distribution.
   chunk = chunks.flatten_chunk()
 ``` 
 
+
+## Full Documentation
+The reference section contains documentation for the main package.
+
+Useful places to look are:
+- [`thermo`](reference/thermo.md)
+- [`chunk`](reference/chunk.md)
+- [`interface`](reference/interface.md)
