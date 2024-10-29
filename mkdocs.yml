@@ -45,9 +45,6 @@ nav:
     - Chunk: 'reference/chunk.md'
     - Thermo: 'reference/thermo.md'
     - Intersects: 'reference/interface.md'
-  - explanation.md
-  - tutorials.md
-  - How-To Guides: how-to-guides.md
 
 plugins:
 - mkdocstrings:
