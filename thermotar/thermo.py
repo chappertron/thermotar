@@ -212,7 +212,7 @@ class Thermo:
             return Thermo(joined_df, properties=properties)
 
     @classmethod
-    def parse_thermo(cls, logfile: str | os.PathLike, f=None) -> List[str]:
+    def parse_thermo(cls, logfile: Union[str, os.PathLike], f=None) -> List[str]:
         """Parse thermo data into strings.
 
         This is primarily meant to e aan internal method.
@@ -314,7 +314,7 @@ class Thermo:
         return Thermo(pd.read_csv(csv_file, **kwargs))
 
     @staticmethod
-    def get_properties(logfile: str | os.PathLike):
+    def get_properties(logfile: Union[str, os.PathLike]):
         """Extract non timeseries 'properties' from the logfile.
 
         Currently tries to extract the timestep, lattice size and box size.

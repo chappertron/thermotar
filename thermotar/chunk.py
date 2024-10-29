@@ -1,7 +1,7 @@
 """Class for Reading output from LAMMPS chunk/ave command."""
 
 from os import PathLike
-from typing import Optional, List
+from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
 
@@ -73,7 +73,9 @@ class Chunk:
         return self.centred
 
     @classmethod
-    def create_chunk(cls, fname: str | PathLike, style: str = "lmp", last: bool = True):
+    def create_chunk(
+        cls, fname: Union[str, PathLike], style: str = "lmp", last: bool = True
+    ):
         """
         Load LAMMPS or numpy savetxt as a df and then create a Chunk instance.
 
@@ -183,7 +185,7 @@ class Chunk:
             return row_copy
 
     def centre(
-        self, coord: int | str | List[str] = "all", moment: Optional[int] = None
+        self, coord: Union[int, str, List[str]] = "all", moment: Optional[int] = None
     ):
         """Shift the origin of the simulation box to zero.
 
@@ -266,7 +268,7 @@ class Chunk:
 
         return np.trapz(integrand, coords) / normaliser
 
-    def choose_coordinate(self, coord: int | str):
+    def choose_coordinate(self, coord: Union[int, str]):
         """Find the provided coordinate column(s).
 
         If an integer, indexes the self.coord_cols field,
@@ -429,7 +431,12 @@ class Chunk:
             return df_binned
 
     def fold_and_ave(
-        self, crease=0.0, coord=None, coord_i=0, sort=True, bw: str | float = "auto"
+        self,
+        crease=0.0,
+        coord=None,
+        coord_i=0,
+        sort=True,
+        bw: Union[str, float] = "auto",
     ):
         """Fold the profile and average the two halves.
 
