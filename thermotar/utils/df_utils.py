@@ -21,6 +21,12 @@ def df_ave_and_err(
     err_method : str = "sem" (default) or "std" = Whether to calculate standard deviation or standard error of the mean.
     """
 
+    if isinstance(
+        level,
+        int,
+    ):
+        raise ValueError("`level` argument can only be an integer.")
+
     all_levels = set(range(df.index.nlevels))
 
     grouping_levels = list(
