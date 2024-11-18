@@ -21,7 +21,7 @@ def df_ave_and_err(
     err_method : str = "sem" (default) or "std" = Whether to calculate standard deviation or standard error of the mean.
     """
 
-    if isinstance(
+    if not isinstance(
         level,
         int,
     ):
