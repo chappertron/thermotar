@@ -2,7 +2,8 @@ import thermotar as th
 
 from thermotar.utils import df_utils
 
-from scipy.integrate import cumtrapz, trapz
+from scipy.integrate import trapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
 
 
 import numpy as np
