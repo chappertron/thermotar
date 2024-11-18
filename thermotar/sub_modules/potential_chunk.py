@@ -2,7 +2,7 @@ import thermotar as th
 
 from thermotar.utils import df_utils
 
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid as trapz
 from scipy.integrate import cumulative_trapezoid as cumtrapz
 
 
@@ -27,12 +27,9 @@ class Potential(th.Chunk):
         integrate_reverse=False,
     ):
         """
-        TODO : finish this for easier calculation of the profiles
         Calculate the electrostatic potential contributions for all components
 
-        TODO: Correct the field contributions or calculate from potential.
-
-        coords -> tuple of strings or string of names of coordinate columns to intgrate against, assumes angstrom
+        coords:  tuple of strings or string of names of coordinate columns to integrate against, assumes angstrom
 
         pot_coor : bool
                 Assume net charge neutral and thus that potential is zero at both box ends, and remove excess charge
