@@ -15,7 +15,7 @@ class LMPChunksParser:
         "info_row_indices",
         "t_steps",
         "n_chunks",
-        "total_counts",
+        # "total_counts",
     )
 
     def __init__(
@@ -31,7 +31,7 @@ class LMPChunksParser:
         self.info_row_indices = []  # containing the info found from
         self.t_steps = []
         self.n_chunks = []
-        self.total_counts = []
+        # self.total_counts = []
 
     def set_columns(
         self,
@@ -69,7 +69,7 @@ class LMPChunksParser:
         self.info_row_indices.append(i)
         self.t_steps.append(parsed_line[0])
         self.n_chunks.append(parsed_line[1])
-        self.total_counts.append(parsed_line[2])
+        # self.total_counts.append(parsed_line[2])
         self.info_rows_dicts[i] = parsed_line
 
     def parse_chunks(self, chunk_len="auto", *, verbose=False, **read_csv_kwargs):
@@ -133,7 +133,8 @@ class LMPChunksParser:
             **read_csv_kwargs,
         ) as reader:
             for i, chunk in enumerate(reader):
-                ind = (self.t_steps[i], self.n_chunks[i], self.total_counts[i])
+                # , self.total_counts[i]
+                ind = (self.t_steps[i], self.n_chunks[i])
                 values[ind] = chunk.reset_index(drop=True)
 
         self.data = pd.concat(values)
