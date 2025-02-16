@@ -52,5 +52,14 @@ plugins:
       python:
         options:
           docstring_style: numpy
+          show_source: false
+          group_by_category: true
+          show_category_heading: false
+          members_order: source
+          show_labels: true
+          merge_init_into_class: true
+          docstring_section_style: spacy
+          separate_signature: false
+
 - search
 
