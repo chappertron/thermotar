@@ -27,13 +27,6 @@ class MultiChunk:
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
             # todo merge columns into vectors
 
-        # set the columns as attributes
-        for col in self.data.columns:
-            # setattr(self, col ,getattr(self.data, col))
-            # has to be set to a method of the class
-            setattr(
-                self.__class__, col, df_utils.raise_col(self, col)
-            )  # set attribute to this property object??
         # column names for the coordinates, up to 3
         # only those in the df are included, by finding intersect of sets.
         self.coord_cols = list(set(self.data.columns.to_list()) & set(coord_cols))
@@ -143,6 +136,19 @@ class MultiChunk:
             print("Biggest chunk:", np.max(parser.n_chunks))
 
         return MultiChunk(parser.data)
+
+    # Dunder methods.
+    def __repr__(self) -> str:
+        """Pretty print."""
+        return f"Thermo({self.data})"
+
+    def __getitem__(self, key: str):
+        """Access the underlying dataframe column."""
+        return self.data[key]
+
+    def __getattr__(self, key: str):
+        """Access the columns with attribute notation."""
+        return self.data[key]
 
 
 if __name__ == "__main__":

@@ -521,8 +521,6 @@ def profile_calculating(
             "Pressure could not be computed. Local stress loc_stress_3 not found. TODO Add options for choosing the column"
         )
 
-    chunk_smoothed.raise_columns()
-
     # trim the fatt
 
     coord = chunk_smoothed.coord
@@ -537,7 +535,6 @@ def profile_calculating(
         chunk_trimmed.data["STP"] = chunk_trimmed.E_tot / chunk_trimmed.temp_grad
         chunk_trimmed.data["STP_P"] = chunk_trimmed.E_P_z / chunk_trimmed.temp_grad
         chunk_trimmed.data["STP_Q"] = chunk_trimmed.E_Q_zz / chunk_trimmed.temp_grad
-        chunk_trimmed.raise_columns()
 
     change_parity = True
     if change_parity:

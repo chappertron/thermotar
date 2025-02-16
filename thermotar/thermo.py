@@ -123,12 +123,6 @@ class Thermo:
                 except KeyError:
                     pass
 
-        # for col in self.data.columns:
-        #     setattr(self, col ,getattr(self.data, col))
-        # sets setters and getters for each column of the df as attributes of the CLASS
-        # Has to be class, not the object itself
-        df_utils.raise_columns(self)
-
     @classmethod
     def create_thermos(
         cls,
@@ -636,6 +630,10 @@ class Thermo:
 
     def __getitem__(self, key: str):
         """Access the underlying dataframe columns."""
+        return self.data[key]
+
+    def __getattr__(self, key: str):
+        """Access the columns with attribute notation."""
         return self.data[key]
 
 

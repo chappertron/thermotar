@@ -159,10 +159,6 @@ class Potential(th.Chunk):
                 )  # Should be zero at box ends. Apply correction, because proportional to the field
                 sub_df[col] += correction
 
-        # raise the new cols, so they can be accessed with obj.colname notation
-        for col in cols_to_add:
-            setattr(self.__class__, col, df_utils.raise_col(self, col))
-
         if integrate_reverse:
             self.data = sub_df.sort_values(coords, ascending=True)  # sort back again!
 

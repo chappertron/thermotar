@@ -9,7 +9,6 @@ import pandas as pd
 from .utils import lmp_utils
 from .utils import parse_chunks
 from .utils import df_utils
-from .utils.df_utils import raise_col
 
 
 class Chunk:
@@ -51,13 +50,6 @@ class Chunk:
             self.data.rename(columns=lmp_utils.strip_pref, inplace=True)
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
 
-        # set the columns as attributes
-        for col in self.data.columns:
-            # has to be set to a method of the class
-            setattr(
-                self.__class__, col, raise_col(self, col)
-            )  # set attribute to this property object??
-        # column names for the coordinates, up to 3
         # only those in the df are included, by finding intersect of sets.
         self.coord_cols = list(set(self.data.columns.to_list()) & set(coord_cols))
         if centered is not None:
@@ -121,14 +113,6 @@ class Chunk:
 
         return cls(df)
 
-    def raise_columns(self):
-        """Raise columns from the df to be attributes."""
-        # I have no clue how pandas does this automatically...
-        # Maybe I need to make it so my objects can be indexed
-        # and in doing that for assignment, the attributes can be raised up
-        # TODO : Something with above??
-        df_utils.raise_columns(self)
-
     def prop_grad(self, prop: str, coord: str, **kwargs):
         """Calculate the gradient of `prop` with respect to `coord`.
 
@@ -144,9 +128,6 @@ class Chunk:
         df = self.data
 
         df[prop + "_grad"] = np.gradient(df[prop], df[coord], **kwargs)
-
-        # updates the columns
-        df_utils.raise_columns(self)
 
     def nearest(self, property: str, value: float, coord=0):
         """Return the index for which property is closest to `value`.
@@ -252,7 +233,6 @@ class Chunk:
         self.data[prop] *= np.sign(
             self.data[coord]
         )  # multiply by the sign of the coordinate column
-        self.raise_columns()
 
     def moment(
         self,
@@ -502,7 +482,17 @@ class Chunk:
 
         return df_ave
 
+    # Dunder methods.
+    def __repr__(self) -> str:
+        """Pretty print."""
+        return f"Thermo({self.data})"
+
     def __getitem__(self, key: str):
+        """Access the underlying dataframe column."""
+        return self.data[key]
+
+    def __getattr__(self, key: str):
+        """Access the columns with attribute notation."""
         return self.data[key]
 
 
