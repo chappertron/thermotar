@@ -25,5 +25,7 @@ setup(
         "matplotlib",
         "typing-extensions",
     ],
-    extras_require={"dev": ["pytest"]},
+    extras_require={
+        "dev": ["pytest", "line_profiler", "mkdocstrings", "mkdocs-material", "mkdocs"]
+    },
 )
