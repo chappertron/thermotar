@@ -112,7 +112,7 @@ class Thermo:
             default: True
         """
         # make load thermos as  IO objects
-        strings_ios = Thermo.parse_thermo(logfile, f=StringIO)
+        strings_ios = Thermo._parse_thermo(logfile, f=StringIO)
         # load io strings as dataframes and return as thermo object
 
         if get_properties:
@@ -336,7 +336,7 @@ class Thermo:
         return df.describe()
 
     @classmethod
-    def parse_thermo(cls, logfile: Union[str, os.PathLike], f=None) -> List[str]:
+    def _parse_thermo(cls, logfile: Union[str, os.PathLike], f=None) -> List[str]:
         """Parse thermo data into strings.
 
         This is primarily meant to e aan internal method.
@@ -411,7 +411,7 @@ class Thermo:
         logfile, path="./split_thermos/", file_name_format="thermo_{}.csv", **kwargs
     ):
         # todo make class method???
-        thermo_lists = Thermo.parse_thermo(logfile)
+        thermo_lists = Thermo._parse_thermo(logfile)
 
         try:
             os.mkdir(path)
