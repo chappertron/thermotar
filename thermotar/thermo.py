@@ -436,7 +436,8 @@ class Thermo:
         ----------
         csv_file:
             path to csv file
-        kwargs: keyword arguments to pass to `pandas.read_csv`
+        kwargs:
+            keyword arguments to pass to `pandas.read_csv`
         """
         return Thermo(pd.read_csv(csv_file, **kwargs))
 
@@ -503,9 +504,9 @@ class Thermo:
         return pd.Series(cum_ave)
 
     def compare_dist(self, property, bins=100, n_blocks=5, **kwargs):
-        """
-        Plot the data as a histogram as well as the estimated probability density function.
-        Also plot the gaussian that has the estimated mean and standard deviation.
+        """Plot the data as a histogram as well as the estimated probability density function.
+
+        Also plots the gaussian that has the estimated mean and standard deviation.
 
         [!note]
             These do not correspond to good estimates. Sub averages should be plotted instead.
@@ -513,10 +514,14 @@ class Thermo:
 
         Parameters
         ----------
-            property: name of the property to plot
-            bins: number of bins to use for the histogram
-            n_blocks: number of blocks to use for the error estimate
-            kwargs: keyword arguments to pass to the plotting functions
+        property:
+            name of the property to plot
+        bins:
+            number of bins to use for the histogram
+        n_blocks:
+            number of blocks to use for the error estimate
+        kwargs:
+            keyword arguments to pass to the plotting functions
         """
         import matplotlib.pyplot as plt
         # TODO: Use it or lose it:
@@ -541,12 +546,17 @@ class Thermo:
     def compare_dist_samples(self, property, n_samples=100, **kwargs):
         """
         Plot the data as a histogram as well as the estimated probability density function.
+
         Also plot the gaussian that has the estimated mean and standard deviation.
 
-        Parameters:
-            property: name of the property to plot
-            n_samples: number of sub-averages used.
-            kwargs: keyword arguments to pass to the plotting functions
+        Parameters
+        ----------
+        property:
+            name of the property to plot
+        n_samples:
+            number of sub-averages used.
+        kwargs:
+            keyword arguments to pass to the plotting functions
         """
         from scipy import stats
         import matplotlib.pyplot as plt
