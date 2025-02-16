@@ -6,17 +6,31 @@ import numpy as np
 
 
 class MultiChunk:
+    """A multi-framed version of `Chunk`."""
+
     def __init__(
         self,
         df,
-        file2=None,
         CLEANUP=True,
         coord_cols=["Coord1", "Coord2", "Coord3", "coord"],
         centred=False,
         centered=None,
-        **kwargs,
     ):
-        """thermo_file - string of log file location"""
+        """
+        Construct a `MultiChunk`  from a Pandas Dataframe.
+
+        Parameters
+        ----------
+        thermo_df :
+            Data frame to read values from.
+        CLEANUP :
+            If true, the headers of the DataFrame are tided up to become valid python
+            identifiers and strips the prefixes from compute/fix and variable columns.
+        centred :
+            Whether the coordinates of the system are already centred. This option
+            will be deprecated; the centring calculation is cheap.
+
+        """
         self.data: pd.DataFrame = df
 
         # clean up dataframe
@@ -36,13 +50,15 @@ class MultiChunk:
         self.centred = centred  # Initialise assuming asymmetrical - to do implement a method to check this!!!!
 
     def copy(self):
+        """Perform a deep copy of the `MultiChunk`."""
         new_chunk = MultiChunk(self.data.copy())
-        new_chunk.coord_cols = self.coord_cols
+        new_chunk.coord_cols = self.coord_cols.copy()
         new_chunk.centred = self.centred
         return new_chunk
 
     def zero_to_nan(self, val=0.0, col=None):
         """Replace an exact value specified with nan.
+
         In columns `col`
         Improves averages
         """
