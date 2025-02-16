@@ -12,7 +12,6 @@ import os
 from io import StringIO
 from typing import Any, Union, List, Optional, Dict
 
-import matplotlib.pyplot as plt
 
 from .utils import lmp_utils
 from .utils import df_utils
@@ -393,6 +392,7 @@ class Thermo:
             n_blocks: number of blocks to use for the error estimate
             kwargs: keyword arguments to pass to the plotting functions
         """
+        import matplotlib.pyplot as plt
         # TODO: Use it or lose it:
         # from scipy import stats
 
@@ -423,6 +423,7 @@ class Thermo:
             kwargs: keyword arguments to pass to the plotting functions
         """
         from scipy import stats
+        import matplotlib.pyplot as plt
 
         df = self.block_aves(n_blocks=n_samples)[property]
 
