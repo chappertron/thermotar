@@ -1,24 +1,16 @@
 #! /usr/bin/env python
 
 
-import argparse
-from pathlib import Path
-from typing import Dict, Tuple
-from enum import Enum, auto
-from typing_extensions import Self
-import typing
-from numpy.linalg import LinAlgError
-import pandas as pd
-import numpy as np
-
-# import asyncio
-
-
 def parse_args(args=None):
+    import argparse
+
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("log_files", nargs="+", type=Path)
-    parser.add_argument("--units", default=Units.REAL, type=Units.from_str)
+    parser.add_argument(
+        "log_files",
+        nargs="+",
+    )  # type=Path)
+    # parser.add_argument("--units", default=Units.REAL, type=Units.from_str)
     parser.add_argument(
         "--drift-fit",
         default=False,
@@ -47,74 +39,26 @@ def parse_args(args=None):
     return parser.parse_args(args=args)
 
 
-def fit(x: pd.Series, y: pd.Series) -> Tuple[Tuple[float, float], pd.Series]:
-    """
-    Fit the data and return the fittings + the values of the fitted line.
-    """
-
-    try:
-        params = np.polyfit(x, y, 1)
-    except LinAlgError:
-        return (np.nan, np.nan), pd.Series(np.nan, index=x.index)
-
-    vals = np.polyval(params, x)
-
-    return (params[0], params[1]), pd.Series(vals)
-
-
-class Units(Enum):
-    """
-    Which set of LAMMPS units are we using?
-
-    Current plan is to use to index a Dict. Maybe a rust style enum may be better?
-    """
-
-    REAL = auto()
-    LJ = auto()
-
-    @classmethod
-    def from_str(cls, s: str) -> Self:
-        """
-        Get units enum from a string
-        """
-
-        s = s.upper()
-
-        return Units[s]
-
-
-# units  =
-
-# TODO use this state class, or not.
-# @dataclass()
-# class State:
-#     properties_in_all: Set[str]
-#     properties_in_some: Set[str]
-#     dfs: pd.DataFrame
-
-
-async def main(args=None):
+def main(args=None):
     args = parse_args(args=args)
 
-    import thermotar as th
-    import matplotlib.pyplot as plt
-    import numpy as np
+    import typing
 
-    thermos: Dict[Path, th.Thermo] = {}
+    from thermotar.thermo import Thermo
+
+    thermos = {}
 
     properties_in_all = set()
     all_properties = set()
 
-    # TODO TRY `to_thread`
+    print("Starting Load")
     for file in args.log_files:
         # Load all thermos in one list
         # TODO: Read the header only first. Read the rest of the file when plotting.
-        thermo = th.create_thermos(file, last=args.last, join=True)
-        #     thermo = await th.thermo.async_parse_thermo(file)
-        #     print(thermo)
+        thermo = Thermo.create_thermos(file, last=args.last, join=True)
 
         # To let the type checker know that thermo is a Thermo object, not a list of thermos.
-        thermo = typing.cast(th.Thermo, thermo)
+        thermo = typing.cast(Thermo, thermo)
 
         properties = thermo.data.columns
 
@@ -169,6 +113,11 @@ async def main(args=None):
 
     properties = list(properties_in_all) + list(properties_in_some)
     properties_to_plot = [properties[i] for i in property_indices]
+
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    from thermotar.bin.bin_impl.thermopl import fit
+    import numpy as np
 
     _, axes = plt.subplots(len(properties_to_plot), sharex=True)
 
@@ -226,7 +175,5 @@ async def main(args=None):
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    main()
     # main()
