@@ -106,7 +106,7 @@ class Thermo:
             this is taken to be the radius of the device
             Default - None
         style - str
-            Can be linear or radial atm - the geometry of the system,
+            Can be 'linear' - the geometry of the system,
             default: linear
         axis - str
             Name of axis along which heat flux is applied
@@ -117,11 +117,11 @@ class Thermo:
             the sign of the thermal gradient
 
         """
-        # for spheriical, area needs to be a radius or an array
+        # for spherical, area needs to be a radius or an array
         # of points for the area as a function of r
 
         if style != "linear":
-            raise ValueError('Currently Only `style="linear"` is supported.')
+            raise ValueError('Currently only `style="linear"` is supported.')
 
         if area is None:
             # find the area if it has been located in the thermo file metadata
@@ -156,6 +156,8 @@ class Thermo:
             # average the hot and cold thermostats # second divide by 2 is accounting
             # for the fact there are 2 fluxes in the box
             e_flow = (fit_H[0] + fit_C[0]) / 2 / 2
+        else:
+            raise ValueError('Currently only `method="linear_fit"` is supported.')
 
         if real_2_si:
             kcal_per_mol = 4.184e3 / 6.02214076e23  # J # 1 kcal
@@ -167,9 +169,24 @@ class Thermo:
 
     @classmethod
     def create_thermos(
-        cls, logfile, join=True, get_properties=True, last=True
+        cls,
+        logfile,
+        join=True,
+        last=True,
+        get_properties=True,
     ) -> Union[List["Thermo"], "Thermo"]:
         """Read the output of a lammps simulation from a logfile.
+
+        By default this method only reads the data from the final run in the file.
+        Can optionally concatenate all the output to one `Thermo` object
+        or create a list of seperate `Thermo` objects for each run.
+
+        If the `get_properties` keyword is set to true, parsing will attemp to
+        extract some key global simulation properties.
+        Currently these include the box dimensions and the timestep.
+        **Warning**: These are only present in LAMMPS logfiles from the
+        stdout of the simulation, not those specified with the `log`
+        command or flag.
 
         Parameters
         ----------
@@ -182,7 +199,9 @@ class Thermo:
             Just get the last set of data, usually production steps.
             `last` overrides `join`.
             default: True
-
+        get_properties : bool
+            Attempt to extract simulation properties from the log files.
+            default: True
         """
         # make load thermos as  IO objects
         strings_ios = Thermo.parse_thermo(logfile, f=StringIO)
