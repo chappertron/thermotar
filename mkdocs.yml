@@ -44,7 +44,9 @@ nav:
   - Reference:
     - Chunk: 'reference/chunk.md'
     - Thermo: 'reference/thermo.md'
+    - labels: 'reference/labels.md'
     - Intersects: 'reference/interface.md'
+    - Submodules: 'reference/submodules.md'
 
 plugins:
 - mkdocstrings:
