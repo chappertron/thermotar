@@ -1,7 +1,4 @@
-"""
-Defines a thermo class
-Thermo Data is extracted from log files
-"""
+"""Defines the `Thermo` class."""
 
 from pathlib import Path
 import warnings
@@ -18,7 +15,59 @@ from .utils import df_utils
 
 
 class Thermo:
-    """Class for loading and operating on LAMMPS thermodynamic output."""
+    """A class for loading and operating on LAMMPS thermodynamic output.
+
+    The `Thermo` class is used to load [LAMMPS log files](https://docs.lammps.org/Run_output.html),
+    and to a lesser extent, GROMACS `.xvg` files.
+
+    The class is a thin wrapper of a Pandas `DataFrame`.
+    The underlying DataFrame can be accessed with the `.data` method.
+
+    The primary way to create instances of this class is using the [`create_thermos`][thermotar.thermo.Thermo.create_thermos]
+    class method.
+    This constructor takes in a path for the `LAMMPS` logfile and returns either one
+    or a list of `Thermo` objects, depending on whether the `join` kwarg is set.
+
+    ```python
+      import thermotar as th
+      # Read LAMMPS log file
+      # By default reads the last runs output
+      thermo = th.create_thermos('log.lammps')
+    ```
+
+    Alternatively the `__init__` method can be used to directly construct a `Thermo`
+    from a DataFrame.
+
+    The columns of data from the underlying data frame can be accessed either using
+    indexing or attribute access,
+
+    ```python
+    temp = thermo['Temp']
+    temp = thermo.Step
+
+    ```
+
+    As well as parsing, the `Thermo` class has several methods that assist with analysis of
+    simulation results.
+
+    Methods
+    -------
+    create_thermos:
+        The main constructor for the `Thermo` class.
+    block_aves:
+        Compute sub averages of the simulation data.
+    stats:
+        Estimate summary statistics using block averaging.
+    heat_flux:
+        Calculate the heat flux in the system.
+
+    Plotting Methods
+    ----------------
+    plot_property:
+        A simple helper for plotting a property against one another.
+
+
+    """
 
     def __init__(
         self,
@@ -28,21 +77,26 @@ class Thermo:
         properties: Optional[Dict[str, Any]] = None,
     ):
         """
-        Construct a Thermo instance from a pandas DataFrame.
+        Construct a Thermo instance directly from a Pandas DataFrame.
+
+        This constructor can be used to recreate a `Thermo` from a DataFrame,
+        either obtained from some intermediate compuation or from another source.
 
         Parameters
         ----------
         thermo_df :
             Pandas DataFrame containing thermodynamic information.
         cleanup :
-            Option to remove c_ etc. prefixes from column names.
+            Option to remove c_/f_/v_ etc. prefixes from column names and
+            indexing suffixes ['*']
         properties :
-            dict of properties parsed from the log file.
-            Used in create thermos or the get_props class method.
+            Dict of properties parsed from the log file.
+            Used in create thermos or the get_props class method,
+            or can be passed in manually in this constructor.
         """
         self.data: pd.DataFrame = thermo_df
 
-        # clean up dataframe
+        # clean up the DataFrame column names.
 
         if cleanup:
             # apply strip_pref function to remove 'c_/f_/v_' prefixes to all columns
