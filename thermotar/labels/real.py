@@ -28,26 +28,3 @@ ELECTRIC_POT = r"$\phi/\ \mathrm{V}$"
 TEMP_GRAD = r"$\nabla T / \ \mathrm{K/\,\AA}$"
 TEMP_GRAD_Z = r"$\nabla_z T(z) / \ \mathrm{K/\,\AA}$"
 TEMP_GRAD_VEC = r"$\mathbf{\nabla} T / \ \mathrm{K/\,\AA}$"
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    spacing = 10.0
-    test_labels = [
-        ELECTRIC_FIELD,
-        ELECTRIC_FIELD_Z,
-        ELECTRIC_FIELD_VEC,
-        ELECTRIC_POT,
-        TEMP_GRAD,
-        TEMP_GRAD_Z,
-        TEMP_GRAD_VEC,
-    ]
-
-    for i, label in enumerate(test_labels):
-        plt.text(0.0, i * spacing, label)
-
-    plt.xlim(-spacing, spacing)
-    plt.ylim(-spacing, spacing * (len(test_labels) + 1))
-
-    plt.show()
