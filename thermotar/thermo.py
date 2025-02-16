@@ -75,6 +75,68 @@ class Thermo:
         # Has to be class, not the object itself
         df_utils.raise_columns(self)
 
+    @classmethod
+    def create_thermos(
+        cls,
+        logfile,
+        join=True,
+        last=True,
+        get_properties=True,
+    ) -> Union[List["Thermo"], "Thermo"]:
+        """Read the output of a lammps simulation from a logfile.
+
+        By default this method only reads the data from the final run in the file.
+        Can optionally concatenate all the output to one `Thermo` object
+        or create a list of seperate `Thermo` objects for each run.
+
+        If the `get_properties` keyword is set to true, parsing will attemp to
+        extract some key global simulation properties.
+        Currently these include the box dimensions and the timestep.
+        **Warning**: These are only present in LAMMPS logfiles from the
+        stdout of the simulation, not those specified with the `log`
+        command or flag.
+
+        Parameters
+        ----------
+        join : bool
+            Decide whether to concatenate the thermo output of different run commands
+            into one df or not
+            If False a list of thermo objects is returned
+            default: True
+        last : bool
+            Just get the last set of data, usually production steps.
+            `last` overrides `join`.
+            default: True
+        get_properties : bool
+            Attempt to extract simulation properties from the log files.
+            default: True
+        """
+        # make load thermos as  IO objects
+        strings_ios = Thermo.parse_thermo(logfile, f=StringIO)
+        # load io strings as dataframes and return as thermo object
+
+        if get_properties:
+            properties = Thermo.get_properties(logfile)
+        else:
+            properties = None
+
+        if last:
+            return Thermo(
+                pd.read_csv(strings_ios[-1], sep=r"\s+"), properties=properties
+            )
+        if not join:
+            return [
+                Thermo(pd.read_csv(csv, sep=r"\s+"), properties=properties)
+                for csv in strings_ios
+            ]
+
+        else:
+            joined_df = pd.concat(
+                [pd.read_csv(csv, sep=r"\s+") for csv in strings_ios]
+            ).reset_index()
+
+            return Thermo(joined_df, properties=properties)
+
     def heat_flux(
         self,
         thermostat_C: str = "thermostatC",
@@ -167,67 +229,111 @@ class Thermo:
 
         return e_flow / area
 
-    @classmethod
-    def create_thermos(
-        cls,
-        logfile,
-        join=True,
-        last=True,
-        get_properties=True,
-    ) -> Union[List["Thermo"], "Thermo"]:
-        """Read the output of a lammps simulation from a logfile.
+    def block_aves(
+        self,
+        group_col="Step",
+        n_blocks=5,
+    ) -> pd.DataFrame:
+        """Divide the simulation into `n_blocks` and take the average of each block.
 
-        By default this method only reads the data from the final run in the file.
-        Can optionally concatenate all the output to one `Thermo` object
-        or create a list of seperate `Thermo` objects for each run.
-
-        If the `get_properties` keyword is set to true, parsing will attemp to
-        extract some key global simulation properties.
-        Currently these include the box dimensions and the timestep.
-        **Warning**: These are only present in LAMMPS logfiles from the
-        stdout of the simulation, not those specified with the `log`
-        command or flag.
+        Used for the calculation of error estimates from a single simulation trajectory.
 
         Parameters
         ----------
-        join : bool
-            Decide whether to concatenate the thermo output of different run commands
-            into one df or not
-            If False a list of thermo objects is returned
-            default: True
-        last : bool
-            Just get the last set of data, usually production steps.
-            `last` overrides `join`.
-            default: True
-        get_properties : bool
-            Attempt to extract simulation properties from the log files.
-            default: True
+        group_col :
+            Which column to use for splitting the time series into bins.
+        n_blocks :
+            How many bins to use.
+
+        Returns
+        -------
+        Returns a dataframe with the block number as the index and the properties as
+        the columns.
+
         """
-        # make load thermos as  IO objects
-        strings_ios = Thermo.parse_thermo(logfile, f=StringIO)
-        # load io strings as dataframes and return as thermo object
+        bw = df_utils.n_blocks2bw(self.data[group_col], n_blocks)
 
-        if get_properties:
-            properties = Thermo.get_properties(logfile)
+        return df_utils.rebin(self.data, binning_coord=group_col, bw=bw)
+
+    def estimate_error(
+        self, group_col="Step", n_blocks=5, error_calc="sem", error_label="err"
+    ) -> pd.DataFrame:
+        """
+        Block averaging estimates for the error of the mean and error in the data.
+
+        Parameters
+        ----------
+        group_col:
+            Column to group the data by. Typically "Step" or "Time"
+        n_blocks:
+            Number of blocks to divide the thermo data into.
+        error_calc:
+            Method of estimating the error. Either "sem" or "std". Default "sem"
+        error_label:
+            Suffix appended to error columns, joined by a "_". Default: "err"
+
+        Returns
+        -------
+        A DataFrame with a multi index with an average and error for each property.
+
+        Changes in version 0.0.2:
+            Error columns now have "_err" as suffix by default instead of the value of
+            `error_calc`. It can be set with `error_label` to overcome this.
+        """
+        aves = self.block_aves(group_col=group_col, n_blocks=n_blocks)
+
+        ave_df = aves.mean()
+
+        if error_calc == "sem":
+            error_df = aves.sem()
+        elif error_calc == "std":
+            error_df = aves.std()
         else:
-            properties = None
+            raise ValueError("Only sem and std are valid error calculation types.")
 
-        if last:
-            return Thermo(
-                pd.read_csv(strings_ios[-1], sep=r"\s+"), properties=properties
-            )
-        if not join:
-            return [
-                Thermo(pd.read_csv(csv, sep=r"\s+"), properties=properties)
-                for csv in strings_ios
-            ]
+        # error_df = error_method()
 
+        # TODO Change sem/std to err?
+        return pd.DataFrame({"ave": ave_df, f"{error_label}": error_df})
+
+    def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
+        """Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
+
+        The percentage drift is relative to the starting fitted value.
+        If the fitting for the drift estimate fails, the parameters are set to np.nan
+        """
+        df = self.data
+
+        cols = set(df.columns)
+        # Only non-time properties
+        cols = cols.difference({time_coord})
+
+        def drift_col(x: pd.Series, col: pd.Series) -> Dict[str, float]:
+            try:
+                fit = np.polyfit(x=x, y=col, deg=1)
+                y_start = np.polyval(fit, x.iloc[0])
+                y_end = np.polyval(fit, x.iloc[-1])
+                drift = y_start - y_end
+
+                return {"drift": drift, "frac_drift": drift / y_start}
+            except np.linalg.LinAlgError:
+                return {"drift": np.nan, "frac_drift": np.nan}
+
+        drifts = pd.DataFrame.from_dict(
+            {col: drift_col(df[time_coord], df[col]) for col in cols},
+        )
+
+        # TODO: fit to all the columns and calculate the high and low values and the percentage drift.
+        return drifts
+
+    def stats(self, n_blocks: Optional[int] = None) -> pd.DataFrame:
+        """Compute summary statisitics of the simulation. Optionally compute block into bins first."""
+        if n_blocks is not None:
+            df = self.block_aves(n_blocks=n_blocks)
         else:
-            joined_df = pd.concat(
-                [pd.read_csv(csv, sep=r"\s+") for csv in strings_ios]
-            ).reset_index()
+            df = self.data
 
-            return Thermo(joined_df, properties=properties)
+        return df.describe()
 
     @classmethod
     def parse_thermo(cls, logfile: Union[str, os.PathLike], f=None) -> List[str]:
@@ -354,17 +460,16 @@ class Thermo:
     def plot_property(
         self, therm_property: str, x_property: Optional[str] = None, **kwargs
     ):
-        """
-        Plot the provieded properties against eachother.
+        """Plot the provided properties against eachother.
 
-        By default `therm_property` is plotted against the Step or Time, in that order.
+        By default `therm_property` is plotted on the y-axis against the 'Step' or 'Time'.
 
         Parameters
         ----------
         therm_property:
             Which property is plotted on the y-axis
         x_property:
-            Plot this on the x-axis. If not provided plots against the Step or Time.
+            Plot this on the x-axis. If not provided defaults to 'Step' then 'Time'.
 
         """
         # todo allow plotting many properties at once
@@ -381,8 +486,6 @@ class Thermo:
                 x_property = "Time"
             else:
                 x_property = None
-
-        # print('got this far!!!')
 
         return self.data.plot(
             x=x_property, y=therm_property, ls=" ", marker="x", **kwargs
@@ -405,7 +508,8 @@ class Thermo:
             These do not correspond to good estimates. Sub averages should be plotted instead.
             The standard deviation of the gaussian is not the standard error.
 
-        Parameters:
+        Parameters
+        ----------
             property: name of the property to plot
             bins: number of bins to use for the histogram
             n_blocks: number of blocks to use for the error estimate
@@ -457,112 +561,6 @@ class Thermo:
         ax.axvline(ave, color="k", linestyle="dashed", linewidth=1, label="Mean")
         x = np.linspace(ave - 3 * err, ave + 3 * err, 500)
         ax.plot(x, stats.norm.pdf(x, ave, err), label="Gaussian")
-
-    def block_aves(
-        self,
-        group_col="Step",
-        n_blocks=5,
-    ) -> pd.DataFrame:
-        """Divide the simulation into `n_blocks` and take the average of each block.
-
-        Used for the calculation of error estimates from a single simulation trajectory.
-
-        Parameters
-        ----------
-        group_col :
-            Which column to use for splitting the time series into bins.
-        n_blocks :
-            How many bins to use.
-
-        Returns
-        -------
-        Returns a dataframe with the block number as the index and the properties as
-        the columns.
-
-        """
-        bw = df_utils.n_blocks2bw(self.data[group_col], n_blocks)
-
-        return df_utils.rebin(self.data, binning_coord=group_col, bw=bw)
-
-    def estimate_error(
-        self, group_col="Step", n_blocks=5, error_calc="sem", error_label="err"
-    ) -> pd.DataFrame:
-        """
-        Block averaging estimates for the error of the mean and error in the data.
-
-        Parameters
-        ----------
-        group_col:
-            Column to group the data by. Typically "Step" or "Time"
-        n_blocks:
-            Number of blocks to divide the thermo data into.
-        error_calc:
-            Method of estimating the error. Either "sem" or "std". Default "sem"
-        error_label:
-            Suffix appended to error columns, joined by a "_". Default: "err"
-
-        Returns
-        -------
-        A DataFrame with a multi index with an average and error for each property.
-
-        Changes in version 0.0.2:
-            Error columns now have "_err" as suffix by default instead of the value of
-            `error_calc`. It can be set with `error_label` to overcome this.
-        """
-        aves = self.block_aves(group_col=group_col, n_blocks=n_blocks)
-
-        ave_df = aves.mean()
-
-        if error_calc == "sem":
-            error_df = aves.sem()
-        elif error_calc == "std":
-            error_df = aves.std()
-        else:
-            raise ValueError("Only sem and std are valid error calculation types.")
-
-        # error_df = error_method()
-
-        # TODO Change sem/std to err?
-        return pd.DataFrame({"ave": ave_df, f"{error_label}": error_df})
-
-    def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
-        """Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
-
-        The percentage drift is relative to the starting fitted value.
-        If the fitting for the drift estimate fails, the parameters are set to np.nan
-        """
-        df = self.data
-
-        cols = set(df.columns)
-        # Only non-time properties
-        cols = cols.difference({time_coord})
-
-        def drift_col(x: pd.Series, col: pd.Series) -> Dict[str, float]:
-            try:
-                fit = np.polyfit(x=x, y=col, deg=1)
-                y_start = np.polyval(fit, x.iloc[0])
-                y_end = np.polyval(fit, x.iloc[-1])
-                drift = y_start - y_end
-
-                return {"drift": drift, "frac_drift": drift / y_start}
-            except np.linalg.LinAlgError:
-                return {"drift": np.nan, "frac_drift": np.nan}
-
-        drifts = pd.DataFrame.from_dict(
-            {col: drift_col(df[time_coord], df[col]) for col in cols},
-        )
-
-        # TODO: fit to all the columns and calculate the high and low values and the percentage drift.
-        return drifts
-
-    def stats(self, n_blocks: Optional[int] = None) -> pd.DataFrame:
-        """Compute summary statisitics of the simulation. Optionally compute block into bins first."""
-        if n_blocks is not None:
-            df = self.block_aves(n_blocks=n_blocks)
-        else:
-            df = self.data
-
-        return df.describe()
 
     # Dunder methods.
     def __repr__(self) -> str:
