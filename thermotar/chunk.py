@@ -491,6 +491,10 @@ class Chunk:
         """Access the underlying dataframe column."""
         return self.data[key]
 
+    def __setitem__(self, key: str, b):
+        """Modify the underlying dataframe column."""
+        self.data[key] = b
+
     def __getattr__(self, key: str):
         """Access the columns with attribute notation."""
         return self.data[key]

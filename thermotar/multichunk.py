@@ -42,9 +42,8 @@ class MultiChunk:
         return new_chunk
 
     def zero_to_nan(self, val=0.0, col=None):
-        """
-        Replace an exact value specified by val with nan
-        In columns col
+        """Replace an exact value specified with nan.
+        In columns `col`
         Improves averages
         """
         if col is None:
@@ -145,6 +144,10 @@ class MultiChunk:
     def __getitem__(self, key: str):
         """Access the underlying dataframe column."""
         return self.data[key]
+
+    def __setitem__(self, key: str, b):
+        """Modify the underlying dataframe column."""
+        self.data[key] = b
 
     def __getattr__(self, key: str):
         """Access the columns with attribute notation."""
