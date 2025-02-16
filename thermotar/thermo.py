@@ -247,8 +247,9 @@ class Thermo:
 
         Returns
         -------
-        Returns a dataframe with the block number as the index and the properties as
-        the columns.
+        df: pd.DataFrame
+            A dataframe with the block number as the index and the properties as
+            the columns.
 
         """
         bw = df_utils.n_blocks2bw(self.data[group_col], n_blocks)
@@ -274,9 +275,11 @@ class Thermo:
 
         Returns
         -------
-        A DataFrame with a multi index with an average and error for each property.
+        df: DataFrame
+            A DataFrame with a multi index with an average and error for each property.
 
-        Changes in version 0.0.2:
+        Changes in version 0.0.2
+        ------------------------
             Error columns now have "_err" as suffix by default instead of the value of
             `error_calc`. It can be set with `error_label` to overcome this.
         """
@@ -297,7 +300,7 @@ class Thermo:
         return pd.DataFrame({"ave": ave_df, f"{error_label}": error_df})
 
     def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
-        """Estimate the percentage drift in the thermodynamic properties, by performing linear fits.
+        """Estimate the percentage drift in the thermodynamic properties, by performing linear fittings.
 
         The percentage drift is relative to the starting fitted value.
         If the fitting for the drift estimate fails, the parameters are set to np.nan
