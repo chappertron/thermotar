@@ -110,7 +110,6 @@ class Thermo:
         if self.properties_dict is not None:
             # set up properties
             if len(self.properties_dict) > 0:
-                ### TODO: set up setters and getters to the properties dict instead
                 try:
                     self.time_step = self.properties_dict["time_step"]
                     self.box = self.properties_dict["box"]
@@ -348,7 +347,6 @@ class Thermo:
 
         # error_df = error_method()
 
-        # TODO Change sem/std to err?
         return pd.DataFrame({"ave": ave_df, f"{error_label}": error_df})
 
     def estimate_drift(self, time_coord: str = "Step") -> pd.DataFrame:
@@ -378,7 +376,6 @@ class Thermo:
             {col: drift_col(df[time_coord], df[col]) for col in cols},
         )
 
-        # TODO: fit to all the columns and calculate the high and low values and the percentage drift.
         return drifts
 
     def stats(self, n_blocks: Optional[int] = None) -> pd.DataFrame:
@@ -409,11 +406,6 @@ class Thermo:
             A function that is applied to all found thermos.
 
         """
-        # TODO: Make more efficient
-        # todo perhaps change to output thermo objects???
-        # todo add automatic skipping of lines with the wrong number of rows
-        # todo if no 'Per MPI rank' found treat as if the file is a tab separated file
-
         thermo_datas = []
 
         with open(logfile, "r") as stream:
@@ -423,9 +415,7 @@ class Thermo:
 
             # Parse file to find thermo data, returns as list of strings
             for line in stream:
-                if line.startswith(
-                    r"Per MPI rank"
-                ):  #### todo use regular expression instead???
+                if line.startswith(r"Per MPI rank"):
                     current_thermo = ""
                     thermo_start = True
                 elif (
@@ -446,13 +436,8 @@ class Thermo:
             # if the thermo series is incomplete appends it anyway
             thermo_datas.append(current_thermo)
 
-        # TODO Gather warnings and emit them
         if warnings_found:
             warnings.warn("Warnings found when reading File")
-
-        # if len(thermo_datas) ==0:
-        #     try:
-        #         #load as file
 
         if f:
             return [
@@ -465,7 +450,6 @@ class Thermo:
     def _split_thermo(
         logfile, path="./split_thermos/", file_name_format="thermo_{}.csv", **kwargs
     ):
-        # todo make class method???
         thermo_lists = Thermo._parse_thermo(logfile)
 
         try:
@@ -528,8 +512,6 @@ class Thermo:
             Plot this on the x-axis. If not provided defaults to 'Step' then 'Time'.
 
         """
-        # todo allow plotting many properties at once
-
         the_data = self.data
 
         if therm_property not in the_data.keys():
@@ -558,8 +540,6 @@ class Thermo:
     def compare_dist(self, property, bins=100, n_blocks=5, **kwargs):
         """Plot the data as a histogram as well as the estimated probability density function.
 
-        Also plots the gaussian that has the estimated mean and standard deviation.
-
         [!note]
             These do not correspond to good estimates. Sub averages should be plotted instead.
             The standard deviation of the gaussian is not the standard error.
@@ -576,14 +556,10 @@ class Thermo:
             keyword arguments to pass to the plotting functions
         """
         import matplotlib.pyplot as plt
-        # TODO: Use it or lose it:
-        # from scipy import stats
 
         # Estimate error of the property
         ave_err = self.estimate_error(n_blocks=n_blocks)
         ave = float(ave_err["ave"].loc[property])
-        # TODO: Use it or lose it:
-        # err = float(ave_err["sem"].loc[property])
 
         _, ax = plt.subplots(1)
 
@@ -593,7 +569,6 @@ class Thermo:
         )
         ax.axvline(ave, color="k", linestyle="dashed", linewidth=1, label="Mean")
         # x = np.linspace(ave - 3 * err , ave + 3 * err,500)
-        # ax.plot(x, stats.norm.pdf(x,ave,err), label="Gaussian")
 
     def compare_dist_samples(self, property, n_samples=100, **kwargs):
         """

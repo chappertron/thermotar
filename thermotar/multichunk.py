@@ -39,7 +39,6 @@ class MultiChunk:
         if CLEANUP:
             self.data.rename(columns=lmp_utils.strip_pref, inplace=True)
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
-            # todo merge columns into vectors
 
         # column names for the coordinates, up to 3
         # only those in the df are included, by finding intersect of sets.
