@@ -477,6 +477,44 @@ class Chunk:
 
         return df_ave
 
+    def fit_between(
+        self,
+        y_prop: str,
+        coord_lo: float,
+        coord_hi: float,
+        *,
+        order: int = 1,
+        coord: int | str = 0,
+    ):
+        """
+        Perform a polynomial fitting of `y_prop` against the coordinate, between specified bounds.
+
+        Parameters
+        ----------
+        y_prop
+            Which property to fit to
+        coord_lo
+            Lower bound of the fitting
+        coord_hi
+            Upper bound of the fitting
+        order
+            Degree of the polynomial to fit to
+        coord:
+            Coordinate label or index into `chunk.coord_cols`
+            Defaults to the first index in `chunk.coord_cols`
+
+        Returns
+        -------
+        NDArray of fitted parameters (from higher degree to lower) and the covariance matrix of the fitting.
+
+        """
+        coord = self._get_coord(coord)
+
+        fit_index = (coord_lo <= self[coord]) & (self[coord] <= coord_hi)
+        df_fit = self.data.loc[fit_index]
+        params, cov = np.polyfit(df_fit[coord], df_fit[y_prop], order, cov=True)
+
+        return params, cov
     # Dunder methods.
     def __repr__(self) -> str:
         """Pretty print."""
@@ -493,6 +531,14 @@ class Chunk:
     def __getattr__(self, key: str):
         """Access the columns with attribute notation."""
         return self.data[key]
+
+    # Helper Methods
+    def _get_coord(self, coord_label: int | str) -> str:
+        """Fetch the coordinate label matching the index provided."""
+        if isinstance(coord_label, int):
+            coord_label = self.coord_cols[coord_label]
+
+        return coord_label
 
 
 if __name__ == "__main__":
