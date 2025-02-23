@@ -4,6 +4,13 @@ import io
 import numpy as np
 
 
+def centre_series(series: pd.Series):
+    """Subtract the average of a series from the series."""
+    centre = (series.max() + series.min()) / 2
+    centred = series - centre
+    return centred
+
+
 def df_ave_and_err(
     df: pd.DataFrame, level=0, suffix="_err", err_method="sem"
 ) -> pd.DataFrame:

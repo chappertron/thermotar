@@ -198,22 +198,17 @@ class Chunk:
                 )  # set origin to be first moment, weighted by moment parameter
             else:
                 # print(coord_col)
-                self.data[coord_col] = self.centre_series(self.data[coord_col])
+                self.data[coord_col] = df_utils.centre_series(
+                    cast(pd.Series, self.data[coord_col])
+                )
 
         self.centred = True
         # Return the object at the end for method chaining
         return self
 
     def center(self, coord="all"):
-        """An alias of centre for yanks."""
+        """An alias of `centre` for yanks."""
         return self.centre(coord=coord)
-
-    @staticmethod
-    def centre_series(series: pd.Series):
-        """Subtract the average of a series from the series."""
-        centre = (series.max() + series.min()) / 2
-        centred = series - centre
-        return centred
 
     def parity(self, prop, coord=0):
         """
