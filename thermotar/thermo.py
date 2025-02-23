@@ -245,14 +245,16 @@ class Thermo:
             else:
                 raise ValueError("axis must be x, y, or z")
 
-        if tstep is None:
+        if tstep is None and self.properties_dict is not None:
             try:
-                tstep = self.step
-            except AttributeError:
-                raise AttributeError("Timestep has not been loaded from log file")
+                tstep = self.properties_dict["time_step"]
+            except KeyError:
+                raise KeyError(
+                    "Timestep has not been loaded from log file. Please supply manually"
+                )
         try:
-            time = self.time
-        except AttributeError:
+            time = self.data["time"]
+        except KeyError:
             time = self.Step * tstep
 
         if method == "linear_fit":
