@@ -1,7 +1,5 @@
 """A collection of plotting functions I find myself writing often."""
 
-from typing import Optional
-import matplotlib as mpl
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -10,6 +8,7 @@ from .thermo import Thermo
 
 
 def shaded_errorbar(x, y, yerr, fmt="", alpha=0.5, ax=None, **kwargs):
+    """Pretty shaded error bars."""
     if ax is None:
         ax = plt.gca()
 

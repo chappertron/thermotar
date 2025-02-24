@@ -116,8 +116,9 @@ def _tail(file, N=20):
 
 def tail(file, N=20):
     """
-    Returns the last `window` lines of file `f` as a list.
-    f - a byte file-like object
+    Returns the last `window` lines of the file `file` as a list.
+
+    file - a byte file-like object
     """
 
     with open(file, "rb") as f:

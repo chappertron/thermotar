@@ -1,7 +1,7 @@
 """Class for Reading output from LAMMPS chunk/ave command."""
 
 from os import PathLike
-from typing import Optional, List, Union
+from typing import Optional, List, Union, cast
 import numpy as np
 import pandas as pd
 
@@ -21,7 +21,6 @@ class Chunk:
         coord_cols=["Coord1", "Coord2", "Coord3", "coord", "Box"],
         centred=False,
         centered=None,
-        **kwargs,
     ):
         """
         Construct a `Chunk`  from a pandas Dataframe.
@@ -51,7 +50,9 @@ class Chunk:
             self.data.rename(columns=lmp_utils.drop_python_bad, inplace=True)
 
         # only those in the df are included, by finding intersect of sets.
-        self.coord_cols = list(set(self.data.columns.to_list()) & set(coord_cols))
+        self.coord_cols: list[str] = list(
+            set(self.data.columns.to_list()) & set(coord_cols)
+        )
         if centered is not None:
             centred = centered
 
@@ -207,7 +208,7 @@ class Chunk:
         return self
 
     def center(self, coord="all"):
-        """An alias of `centre` for yanks."""
+        """Alias of `centre` for yanks."""
         return self.centre(coord=coord)
 
     def parity(self, prop, coord=0):
@@ -235,13 +236,13 @@ class Chunk:
         weighting,
         order=1,
     ):
-        """Calculate the specified moment of the coordinate, weighted by a named property"""
+        """Calculate the specified moment of the coordinate, weighted by a named property."""
         coords = self.data[self.choose_coordinate(coord)].T
 
         integrand = self.data[weighting] * coords**order
-        normaliser = np.trapz(self.data[weighting], coords)
+        normaliser = np.trapezoid(self.data[weighting], coords)
 
-        return np.trapz(integrand, coords) / normaliser
+        return np.trapezoid(integrand, coords) / normaliser
 
     def choose_coordinate(self, coord: Union[int, str]):
         """Find the provided coordinate column(s).
@@ -262,7 +263,12 @@ class Chunk:
 
         return coords
 
-    def fold(self, crease=0.0, coord=None, coord_i: int = 0, sort=False, inplace=True):
+    def fold(
+        self,
+        crease=0.0,
+        coord: str | int = 0,
+        sort=False,
+    ):
         """
         Fold the profile about coord = crease.
 
@@ -279,19 +285,17 @@ class Chunk:
         crease: -
                 Position along folded coordinate to fold about
 
-        coord_i : int -
-                The index of the self.coord_cols list. Default is 0, the first coord
+        coord : int|str -
+                The coordinate column or the index of the self.coord_cols list.
+                Default is 0, the first coord
         """
-        if coord is None:
-            coord_name = self.coord_cols[coord_i]
-        else:
-            coord_name = coord
+        coord_name = self._get_coord(coord)
 
-        if (crease == 0) and self.centred:
+        if (crease == 0.0) and self.centred:
             # don't bother finding fold line, just go straight to folding!!!
             # in this case fold by making all negative and
             self.data[coord_name] = np.absolute(self.data[coord_name])
-        elif crease == 0:
+        elif crease == 0.0:
             # if the crease is located at coord = 0, but not already centred then - centres
             self.centre(coord=coord_name)
             self.data[coord_name] = np.absolute(self.data[coord_name])
@@ -307,9 +311,9 @@ class Chunk:
                 crease  # add the crease value back so still starts at this value!
             )
 
-        # TODO Implement fully, even when not centred!
+        # TODO: Implement fully, even when not centred!
 
-        # TODO auto sort ?
+        # TODO: auto sort ?
 
         if sort:
             # sorts the data by this column name
@@ -376,14 +380,15 @@ class Chunk:
                     new_coord_loc=new_coord_loc,
                     weight_col=weights,
                 )
-            elif np.number >= 3:
+            else:
                 raise NotImplementedError(
-                    "Binning in more than two dimensions not yet supported"
+                    "Binning in more than two dimensions not yet supported."
                 )
         else:
             df_binned = df_utils.rebin(
                 df, coord, bw=bw, mode=mode, weight_col=weights, bins=bins
             )
+
         # coord_max = df[coord].max()
         # coord_min = df[coord].min() # finding min and max so it works with gfolded data
 
@@ -399,7 +404,6 @@ class Chunk:
         # else:
         #     df_binned = df_grouped.sum()
 
-        # TODO:  Why is df_binned possibly unbound?
         if inplace:
             self.data = df_binned
         else:
@@ -410,30 +414,28 @@ class Chunk:
         crease=0.0,
         coord=None,
         coord_i=0,
-        sort=True,
-        bw: Union[str, float] = "auto",
+        bw: str | float = "auto",
     ):
         """Fold the profile and average the two halves.
 
-            WARNING: if properties have been calculated prior to folding,
-            they may no longer be correct, epsecially properties that invert under coordinate inversion (pseudoscalars)
+        WARNING: if properties have been calculated prior to folding,
+        they may no longer be correct, epsecially properties that invert
+        under coordinate inversion (pseudoscalars).
 
-            For example, electric fields calculated by integrating charge profiles, will have a different sign in each part of the box.
+        For example, electric fields calculated by integrating charge profiles,
+        will have a different sign in each part of the box.
 
         Parameters
         ----------
         crease:
                 Position along folded coordinate to fold about
-
         coord_i : int
                 The index of the self.coord_cols list. Default is 0, the first coord
                 if all, will fold all coordinates, but will only crease
-
         bw:
             Averaging works by rebinning
             If auto, tries to work out the original bin spacing and then groups by this
             If not auto, specify the bin width in distance.
-
         """
         if coord is None:
             if coord_i == "all":
@@ -471,7 +473,7 @@ class Chunk:
         df[coord_names] = (
             np.abs(df[coord_names] - crease) + crease
         )  # assumes already centred for now
-        df_ave = df_utils.rebin(df, coord_names[0], bw).sort_values(
+        df_ave = df_utils.rebin(df, coord_names[0], cast(float, bw)).sort_values(
             coord_names[0]
         )  # performing the rebinning # then sort by the coord
 
@@ -515,13 +517,18 @@ class Chunk:
         params, cov = np.polyfit(df_fit[coord], df_fit[y_prop], order, cov=True)
 
         return params, cov
+
     # Dunder methods.
     def __repr__(self) -> str:
         """Pretty print."""
         return f"Thermo({self.data})"
 
     def __getitem__(self, key: str):
-        """Access the underlying dataframe column."""
+        """Access the underlying dataframe column.
+
+        Hands off to the underlying Pandas implementation.
+        """
+        self.data.__getitem__
         return self.data[key]
 
     def __setitem__(self, key: str, b):
