@@ -196,6 +196,7 @@ class Thermo:
         direction: int = 1,
         real_2_si: bool = True,
         tstep: Optional[float] = None,
+        n_fluxes: int = 2,
     ) -> float:
         """Calculate the heatflux from the accumulated energy output.
 
@@ -221,11 +222,13 @@ class Thermo:
         axis - str
             Name of axis along which heat flux is applied
             default 'z'
-
         direction : int
             hot to cold = 1,  cold to hot = -1 - matches
             the sign of the thermal gradient
-
+        n_fluxes : int
+            How many heat fluxes are present in the simulation box and contribute to
+            the themostat energies.
+            Used for normalising so the calculation returns the magnitude of a single flux
         """
         # for spherical, area needs to be a radius or an array
         # of points for the area as a function of r
@@ -235,7 +238,6 @@ class Thermo:
 
         if area is None:
             # find the area if it has been located in the thermo file metadata
-
             if axis == "x":
                 area = self.box_Ly * self.box_Lz
             elif axis == "y":
@@ -267,7 +269,7 @@ class Thermo:
 
             # average the hot and cold thermostats # second divide by 2 is accounting
             # for the fact there are 2 fluxes in the box
-            e_flow = (fit_H[0] + fit_C[0]) / 2 / 2
+            e_flow = (fit_H[0] + fit_C[0]) / 2.0 / float(n_fluxes)
         else:
             raise ValueError('Currently only `method="linear_fit"` is supported.')
 
