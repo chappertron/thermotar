@@ -27,15 +27,21 @@ class Potential(th.Chunk):
         integrate_reverse=False,
     ):
         """
-        Calculate the electrostatic potential contributions for all components
+        Calculate the electrostatic potential contributions for all components.
 
-        coords:  tuple of strings or string of names of coordinate columns to integrate against, assumes angstrom
+        ## Arguments:
+            coords:
+                tuple of strings or string of names of coordinate columns to integrate against, assumes angstrom
 
-        pot_coor : bool
-                Assume net charge neutral and thus that potential is zero at both box ends, and remove excess charge
-                Currently only applied to the total potential
+            pot_coor : bool
+                    Assume net charge neutral and thus that potential is zero at both box ends, and remove excess charge
+                    Currently only applied to the total potential
+            Ps:
+                Names of dipole moment density columns
+                Set to None to non-caclulate the corresponding fields.
+            Qs:
+                Names of Quadrupole moment density columns
         """
-
         from scipy.constants import epsilon_0
 
         epsilon_0_AA = epsilon_0 * 1e-10  # convert F m^-1 -> F AA^-1
@@ -44,6 +50,10 @@ class Potential(th.Chunk):
 
         # add the appropriate column names
 
+        if Ps is None:
+            Ps = []
+        if Qs is None:
+            Qs = []
         field_P_names = ["E_" + P for P in Ps]
         pot_P_names = ["phi_" + P for P in Ps]
         field_Q_names = ["E_" + Q for Q in Qs]
@@ -136,8 +146,9 @@ class Potential(th.Chunk):
                 sub_df[pot_Q_names], sub_df[coords], axis=0
             )  # derivative of the corrected potential field
         if pot_corr:
-            # TODO add corrections for the other components
-            sub_df["phi_P_uncorrected"] = sub_df["phi_P_z"]
+            # TODO: add corrections for the other components
+            if len(Ps) > 0:
+                sub_df["phi_P_uncorrected"] = sub_df["phi_P_z"]
             # get last value of this
             for col in pot_P_names:
                 correction = (
@@ -153,7 +164,7 @@ class Potential(th.Chunk):
             )
 
             ### Apply correction to the P_z charge density
-            for col in ["P_x", "P_y", "P_z"]:
+            for col in Ps:
                 correction = (
                     -1 * sub_df[col].mean()
                 )  # Should be zero at box ends. Apply correction, because proportional to the field
