@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import os
 from io import StringIO
-from typing import Any, Union, List, Optional, Dict
+from typing import Any, Union, List, Optional, Dict, overload, Literal
 
 
 from .utils import lmp_utils
@@ -122,14 +122,44 @@ class Thermo:
                 except KeyError:
                     pass
 
+    @overload
     @classmethod
     def create_thermos(
         cls,
-        logfile,
-        join=True,
-        last=True,
-        get_properties=True,
-    ) -> Union[List["Thermo"], "Thermo"]:
+        logfile: Union[os.PathLike, str],
+        join: Literal[True] = ...,
+        last: bool = ...,
+        get_properties: bool = ...,
+    ) -> "Thermo": ...
+
+    @overload
+    @classmethod
+    def create_thermos(
+        cls,
+        logfile: Union[os.PathLike, str],
+        join: bool = ...,
+        last: Literal[True] = ...,
+        get_properties: bool = ...,
+    ) -> "Thermo": ...
+
+    @overload
+    @classmethod
+    def create_thermos(
+        cls,
+        logfile: Union[os.PathLike, str],
+        join: Literal[False],
+        last: Literal[False],
+        get_properties: bool = ...,
+    ) -> List["Thermo"]: ...
+
+    @classmethod
+    def create_thermos(
+        cls,
+        logfile: Union[os.PathLike, str],
+        join: bool = True,
+        last: bool = True,
+        get_properties: bool = True,
+    ) -> Union["Thermo", List["Thermo"]]:
         """Read the output of a lammps simulation from a logfile.
 
         By default this method only reads the data from the final run in the file.
