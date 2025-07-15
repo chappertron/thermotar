@@ -479,6 +479,39 @@ class Chunk:
 
         return df_ave
 
+    def select_between(
+        self,
+        coord_lo: float,
+        coord_hi: float,
+        coord: int | str = 0,
+        inclusive_upper=False,
+    ) -> "Chunk":
+        """
+        Select the subset of datapoints between two limits.
+
+        Parameters
+        ----------
+        coord_lo
+            Lower bound of the selection
+        coord_hi
+            Upper bound of the selection
+        inclusive_upper
+            whether to include the upper bound or not.
+        coord
+            Coordinate label or index into `Chunk.coord_cols`
+            Defaults to the first index in `Chunk.coord_cols`
+
+        """
+        coord = self._get_coord(coord)
+
+        select_index = self[coord].between(
+            left=coord_lo,
+            right=coord_hi,
+            inclusive="both" if inclusive_upper else "left",
+        )
+
+        return Chunk(self.data.loc[select_index], CLEANUP=False)
+
     def fit_between(
         self,
         y_prop: str,
