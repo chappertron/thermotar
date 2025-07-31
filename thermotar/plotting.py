@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 from .thermo import Thermo
 
 
-def shaded_errorbar(x, y, yerr, fmt="", alpha=0.5, ax=None, **kwargs):
+def shaded_errorbar(x, y, yerr, fmt="", alpha=0.5, ax=None, label=None, **kwargs):
     if ax is None:
         ax = plt.gca()
 
@@ -33,6 +33,24 @@ def shaded_errorbar(x, y, yerr, fmt="", alpha=0.5, ax=None, **kwargs):
     )
 
     return (line, shading)
+
+
+def delta_annotation(
+    x: float, y_low: float, y_high: float, ax: Optional[Axes] = None, **kwargs
+):
+    """
+    Draw a vertical line at these points
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    ax.annotate(
+        "",
+        xytext=(x, y_low),
+        xy=(x, y_high),
+        arrowprops=dict(arrowstyle="<->", **kwargs),
+    )
 
 
 def plot_thermostat_energies(
